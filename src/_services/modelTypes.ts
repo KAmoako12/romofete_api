@@ -1,5 +1,17 @@
 // TypeScript interfaces for all database models
 
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+  is_active: boolean;
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
 export interface ProductType {
   id: number;
   name: string;
@@ -161,4 +173,46 @@ export interface ApiError {
 export interface DeleteResponse {
   message: string;
   deliveryOption: DeliveryOptionResponse;
+}
+
+export interface Bundle {
+  id: number;
+  name: string;
+  description: string | null;
+  discount_percentage: string | null; // Decimal as string for JSON serialization
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateBundleRequest {
+  name: string;
+  description?: string;
+  discount_percentage?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateBundleRequest {
+  name?: string;
+  description?: string;
+  discount_percentage?: number;
+  is_active?: boolean;
+}
+
+export interface BundleProduct {
+  id: number;
+  bundle_id: number;
+  product_id: number;
+  quantity: number;
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateBundleProductRequest {
+  bundle_id: number;
+  product_id: number;
+  quantity: number;
 }

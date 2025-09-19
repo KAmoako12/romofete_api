@@ -216,19 +216,20 @@ export class BundleService {
       }
 
       const totalPrice = bundle.products.reduce((sum: number, product: any) => {
-        return sum + (product.product_price * product.quantity);
+        return sum + (parseFloat(product.product_price) * product.quantity);
       }, 0);
 
       let finalPrice = totalPrice;
-      if (bundle.discount_percentage && bundle.discount_percentage > 0) {
-        const discountAmount = (totalPrice * bundle.discount_percentage) / 100;
+      const discountPercentage = (bundle as any).discount_percentage ? parseFloat((bundle as any).discount_percentage) : 0;
+      if (discountPercentage && discountPercentage > 0) {
+        const discountAmount = (totalPrice * discountPercentage) / 100;
         finalPrice = totalPrice - discountAmount;
       }
 
       return {
         bundle_id: bundleId,
         original_price: totalPrice,
-        discount_percentage: bundle.discount_percentage || 0,
+        discount_percentage: discountPercentage,
         discount_amount: totalPrice - finalPrice,
         final_price: finalPrice,
         products_count: bundle.products.length

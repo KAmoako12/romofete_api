@@ -1,5 +1,6 @@
 import { Knex } from "knex";
 import { DB } from "../_services/_dbTables";
+import { Bundle, BundleProduct } from "../_services/modelTypes";
 
 export class BundleQuery {
   private db: Knex;
@@ -14,19 +15,21 @@ export class BundleQuery {
     description?: string;
     discount_percentage?: number;
     is_active?: boolean;
-  }) {
-    const [bundle] = await this.db(DB.Bundles)
-      .insert({
-        ...bundleData,
-        created_at: this.db.fn.now(),
-        updated_at: this.db.fn.now()
-      })
+  }): Promise<Bundle> {
+    const insertData: any = {
+      ...bundleData,
+      created_at: this.db.fn.now(),
+      updated_at: this.db.fn.now()
+    };
+    
+    const [bundle] = await this.db<Bundle>(DB.Bundles)
+      .insert(insertData)
       .returning("*");
-    return bundle;
+    return bundle as Bundle;
   }
 
   // Add products to a bundle
-  async addProductsToBundle(bundleId: number, products: Array<{ product_id: number; quantity: number }>) {
+  async addProductsToBundle(bundleId: number, products: Array<{ product_id: number; quantity: number }>): Promise<BundleProduct[]> {
     const bundleProducts = products.map(product => ({
       bundle_id: bundleId,
       product_id: product.product_id,
@@ -34,9 +37,10 @@ export class BundleQuery {
       created_at: this.db.fn.now()
     }));
 
-    return await this.db(DB.BundleProducts)
+    const result = await this.db<BundleProduct>(DB.BundleProducts)
       .insert(bundleProducts)
       .returning("*");
+    return result as BundleProduct[];
   }
 
   // Get bundle by ID with products
@@ -108,8 +112,8 @@ export class BundleQuery {
 
     // Get total count for pagination
     const totalQuery = query.clone();
-    const [{ count }] = await totalQuery.count('* as count');
-    const total = parseInt(count as string);
+    const countResult = await totalQuery.count('* as count').first();
+    const total = parseInt((countResult as any)?.count || '0');
 
     // Apply pagination and sorting
     const offset = (page - 1) * limit;
@@ -139,7 +143,7 @@ export class BundleQuery {
         return {
           ...bundle,
           products_count: products.length,
-          total_value: products.reduce((sum, p) => sum + (p.product_price * p.quantity), 0)
+          total_value: products.reduce((sum: number, p: any) => sum + (parseFloat(p.product_price) * p.quantity), 0)
         };
       })
     );
@@ -161,61 +165,62 @@ export class BundleQuery {
     description?: string;
     discount_percentage?: number;
     is_active?: boolean;
-  }) {
-    const [bundle] = await this.db(DB.Bundles)
+  }): Promise<Bundle> {
+    const updatePayload: any = {
+      ...updateData,
+      updated_at: this.db.fn.now()
+    };
+
+    const [bundle] = await this.db<Bundle>(DB.Bundles)
       .where({ id, is_deleted: false })
-      .update({
-        ...updateData,
-        updated_at: this.db.fn.now()
-      })
+      .update(updatePayload)
       .returning("*");
-    return bundle;
+    return bundle as Bundle;
   }
 
   // Remove product from bundle
   async removeProductFromBundle(bundleId: number, productId: number) {
+    const updatePayload = {
+      is_deleted: true,
+      deleted_at: this.db.fn.now()
+    };
+
     return await this.db(DB.BundleProducts)
-      .where({
-        bundle_id: bundleId,
-        product_id: productId,
-        is_deleted: false
-      })
-      .update({
-        is_deleted: true,
-        deleted_at: this.db.fn.now()
-      });
+      .where('bundle_id', bundleId)
+      .where('product_id', productId)
+      .where('is_deleted', false)
+      .update(updatePayload);
   }
 
   // Update product quantity in bundle
-  async updateBundleProductQuantity(bundleId: number, productId: number, quantity: number) {
-    const [bundleProduct] = await this.db(DB.BundleProducts)
-      .where({
-        bundle_id: bundleId,
-        product_id: productId,
-        is_deleted: false
-      })
-      .update({ quantity })
+  async updateBundleProductQuantity(bundleId: number, productId: number, quantity: number): Promise<BundleProduct> {
+    const updatePayload = { quantity };
+
+    const [bundleProduct] = await this.db<BundleProduct>(DB.BundleProducts)
+      .where('bundle_id', bundleId)
+      .where('product_id', productId)
+      .where('is_deleted', false)
+      .update(updatePayload)
       .returning("*");
-    return bundleProduct;
+    return bundleProduct as BundleProduct;
   }
 
   // Delete bundle (soft delete)
   async deleteBundle(id: number) {
+    const updatePayload = {
+      is_deleted: true,
+      deleted_at: this.db.fn.now()
+    };
+
     // Soft delete the bundle
     await this.db(DB.Bundles)
-      .where({ id })
-      .update({
-        is_deleted: true,
-        deleted_at: this.db.fn.now()
-      });
+      .where('id', id)
+      .update(updatePayload);
 
     // Soft delete all bundle products
     await this.db(DB.BundleProducts)
-      .where({ bundle_id: id })
-      .update({
-        is_deleted: true,
-        deleted_at: this.db.fn.now()
-      });
+      .where('bundle_id', id)
+      .update(updatePayload);
 
     return true;
   }
@@ -224,10 +229,8 @@ export class BundleQuery {
   async getProductsInSameBundles(productId: number, limit: number = 10) {
     // First, get all bundles that contain the given product
     const bundleIds = await this.db(DB.BundleProducts)
-      .where({
-        product_id: productId,
-        is_deleted: false
-      })
+      .where('product_id', productId)
+      .where('is_deleted', false)
       .pluck('bundle_id');
 
     if (bundleIds.length === 0) {
@@ -240,10 +243,8 @@ export class BundleQuery {
       .join(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
       .whereIn(`${DB.BundleProducts}.bundle_id`, bundleIds)
       .where(`${DB.BundleProducts}.product_id`, '!=', productId)
-      .where({
-        [`${DB.BundleProducts}.is_deleted`]: false,
-        [`${DB.Products}.is_deleted`]: false
-      })
+      .where(`${DB.BundleProducts}.is_deleted`, false)
+      .where(`${DB.Products}.is_deleted`, false)
       .groupBy(
         `${DB.Products}.id`,
         `${DB.Products}.name`,
@@ -272,7 +273,8 @@ export class BundleQuery {
   // Check if bundle exists and is not deleted
   async bundleExists(id: number): Promise<boolean> {
     const bundle = await this.db(DB.Bundles)
-      .where({ id, is_deleted: false })
+      .where('id', id)
+      .where('is_deleted', false)
       .first();
     return !!bundle;
   }
@@ -280,11 +282,9 @@ export class BundleQuery {
   // Check if product is already in bundle
   async isProductInBundle(bundleId: number, productId: number): Promise<boolean> {
     const bundleProduct = await this.db(DB.BundleProducts)
-      .where({
-        bundle_id: bundleId,
-        product_id: productId,
-        is_deleted: false
-      })
+      .where('bundle_id', bundleId)
+      .where('product_id', productId)
+      .where('is_deleted', false)
       .first();
     return !!bundleProduct;
   }

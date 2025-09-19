@@ -24,6 +24,7 @@ export async function addUser({
     role,
   });
   // Remove password before returning
+  //@ts-ignore
   if (user && user.password) {
     delete (user as any).password;
   }
@@ -32,6 +33,7 @@ export async function addUser({
 
 export async function getUserById(id: number) {
   const user = await Query.getUserById(id);
+  //@ts-ignore
   if (user && user.password) {
     delete (user as any).password;
   }
@@ -40,6 +42,7 @@ export async function getUserById(id: number) {
 
 export async function getUserByUsername(username: string) {
   const user = await Query.getUserByUsername(username);
+  //@ts-ignore
   if (user && user.password) {
     delete (user as any).password;
   }
@@ -54,6 +57,7 @@ export async function listUsers() {
 
 export async function deleteUser(id: number) {
   const [user] = await Query.deleteUser(id);
+  //@ts-ignore
   if (user && user.password) {
     delete (user as any).password;
   }
@@ -71,6 +75,7 @@ export async function loginUser({
   if (!user) {
     throw new Error("Invalid username or password");
   }
+  //@ts-ignore
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     throw new Error("Invalid username or password");
@@ -82,10 +87,14 @@ export async function loginUser({
   const user_type = "admin";
 
   // Prepare token payload
+  
   const payload: AuthTokenPayload = {
     id: user.id,
+    //@ts-ignore
     username: user.username,
+    //@ts-ignore
     email: user.email,
+    //@ts-ignore
     role: user.role,
     user_type,
   };
