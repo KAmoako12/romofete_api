@@ -171,7 +171,7 @@ export namespace Query {
 
         return knex(DB.Products)
             .where({ id, is_deleted: false })
-            .update({ stock: newStock })
+            .update({ stock: newStock } as any)
             .returning('*');
     }
 
@@ -207,5 +207,53 @@ export namespace Query {
                 `${DB.ProductTypes}.name as product_type_name`
             )
             .orderBy(`${DB.Products}.stock`, 'asc');
+    }
+
+    export async function getSimilarProducts(productId: number, limit: number = 10) {
+        // First get the target product to understand its characteristics
+        const targetProduct = await getProductById(productId);
+        if (!targetProduct) {
+            throw new Error('Product not found');
+        }
+
+        // Find similar products based on:
+        // 1. Same product type (highest priority)
+        // 2. Similar price range (within 20% of the target product's price)
+        // 3. Exclude the target product itself
+        // 4. Only include in-stock products
+        
+        const targetPrice = parseFloat(targetProduct.price);
+        const priceRangeMin = targetPrice * 0.8; // 20% below
+        const priceRangeMax = targetPrice * 1.2; // 20% above
+
+        return knex(DB.Products)
+            .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .where(`${DB.Products}.is_deleted`, false)
+            .where(`${DB.Products}.stock`, '>', 0)
+            .where(`${DB.Products}.id`, '!=', productId)
+            .where(function() {
+                // Priority 1: Same product type
+                this.where(`${DB.Products}.product_type_id`, targetProduct.product_type_id)
+                    // Priority 2: Similar price range
+                    .orWhere(function() {
+                        this.where(`${DB.Products}.price`, '>=', priceRangeMin)
+                            .where(`${DB.Products}.price`, '<=', priceRangeMax);
+                    });
+            })
+            .select(
+                `${DB.Products}.*`,
+                `${DB.ProductTypes}.name as product_type_name`,
+                // Add a similarity score for ordering
+                knex.raw(`
+                    CASE 
+                        WHEN ${DB.Products}.product_type_id = ? THEN 100
+                        WHEN ${DB.Products}.price BETWEEN ? AND ? THEN 50
+                        ELSE 0
+                    END as similarity_score
+                `, [targetProduct.product_type_id, priceRangeMin, priceRangeMax])
+            )
+            .orderBy('similarity_score', 'desc')
+            .orderBy(`${DB.Products}.created_at`, 'desc')
+            .limit(limit);
     }
 }

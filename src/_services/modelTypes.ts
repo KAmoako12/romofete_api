@@ -80,6 +80,8 @@ export interface CreateOrderRequest {
   customer_email?: string;
   customer_phone?: string;
   customer_name?: string;
+  customer_password?: string;
+  register_customer?: boolean;
 }
 
 export interface UpdateOrderRequest {

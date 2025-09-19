@@ -167,19 +167,28 @@ const router = Router();
  *         delivery_address:
  *           type: string
  *           maxLength: 500
- *           description: Delivery address
+ *           description: Delivery address (required for guest orders)
  *         customer_email:
  *           type: string
  *           format: email
- *           description: Customer email address
+ *           description: Customer email address (required for guest orders)
  *         customer_phone:
  *           type: string
  *           maxLength: 20
- *           description: Customer phone number
+ *           description: Customer phone number (required for guest orders)
  *         customer_name:
  *           type: string
  *           maxLength: 160
- *           description: Customer full name
+ *           description: Customer full name (required for guest orders)
+ *         customer_password:
+ *           type: string
+ *           minLength: 8
+ *           maxLength: 120
+ *           description: Password for automatic customer registration (optional)
+ *         register_customer:
+ *           type: boolean
+ *           default: false
+ *           description: Whether to automatically register the guest as a customer
  *       example:
  *         items:
  *           - product_id: 1
@@ -191,6 +200,8 @@ const router = Router();
  *         customer_email: "customer@example.com"
  *         customer_phone: "+1234567890"
  *         customer_name: "John Doe"
+ *         customer_password: "securepassword123"
+ *         register_customer: true
  *     
  *     PaystackInitializeResponse:
  *       type: object
@@ -313,7 +324,24 @@ router.get("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) =
  * /orders:
  *   post:
  *     summary: Create a new order
- *     description: Creates a new order with items and calculates total including delivery cost
+ *     description: |
+ *       Creates a new order with items and calculates total including delivery cost.
+ *       
+ *       **For authenticated users:** Only the `items` field is required. User information is taken from the authentication token.
+ *       
+ *       **For guest orders:** The following fields are required:
+ *       - `items` (array of products and quantities)
+ *       - `customer_email` (email address)
+ *       - `customer_name` (full name)
+ *       - `customer_phone` (phone number)
+ *       - `delivery_address` (delivery address)
+ *       
+ *       **Guest customer registration:** 
+ *       - If `register_customer` is set to `true`, the guest will be automatically registered as a customer
+ *       - If `customer_password` is provided, it will be used for registration; otherwise a random password is generated
+ *       - If a customer with the same email already exists, no new registration occurs
+ *       
+ *       The response will include `customer_registered: true` and `customer_id` if automatic registration occurred.
  *     tags: [Orders]
  *     requestBody:
  *       required: true
@@ -327,9 +355,24 @@ router.get("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) =
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Order'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/Order'
+ *                 - type: object
+ *                   properties:
+ *                     customer_registered:
+ *                       type: boolean
+ *                       description: Whether the guest customer was automatically registered
+ *                     customer_id:
+ *                       type: integer
+ *                       description: ID of the registered customer (if applicable)
+ *                     paystack_authorization_url:
+ *                       type: string
+ *                       description: Paystack payment URL (if payment initialization succeeded)
+ *                     paystack_access_code:
+ *                       type: string
+ *                       description: Paystack access code (if payment initialization succeeded)
  *       400:
- *         description: Invalid input data or insufficient stock
+ *         description: Invalid input data, insufficient stock, or missing required fields for guest orders
  *       404:
  *         description: Product or delivery option not found
  *       500:

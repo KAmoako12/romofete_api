@@ -2,7 +2,9 @@
 import { Query as OrderQuery, OrderFilters, OrderPaginationOptions } from "./query";
 import { Query as ProductQuery } from "../product/query";
 import { Query as DeliveryQuery } from "../delivery-option/query";
+import { Query as CustomerQuery } from "../customer/query";
 import { CreateOrderRequest, UpdateOrderRequest, CreateOrderItemRequest } from "../_services/modelTypes";
+import bcrypt from "bcrypt";
 
 // Paystack configuration
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -66,6 +68,8 @@ export interface PaystackInitializeResponse {
 }
 
 export async function createOrder(data: CreateOrderRequest): Promise<OrderResponse> {
+  const SALT_ROUNDS = 10;
+  
   // Validate all products exist and have sufficient stock
   const orderItems: CreateOrderItemRequest[] = [];
   let subtotal = 0;
@@ -104,10 +108,53 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderRespon
     if (!deliveryOption) {
       throw new Error(`Delivery option with ID ${data.delivery_option_id} not found`);
     }
-    deliveryCost = parseFloat(deliveryOption.amount.toString());
+    deliveryCost = parseFloat((deliveryOption as any).amount.toString());
   }
 
   const totalPrice = subtotal + deliveryCost;
+
+  // Handle guest customer registration if this is a guest order
+  let registeredCustomer = null;
+  if (!data.user_id && data.customer_email) {
+    // Check if customer already exists
+    const existingCustomer = await CustomerQuery.getCustomerByEmail(data.customer_email);
+    
+    if (!existingCustomer) {
+      // Auto-register guest customer if they provided a password or if register_customer is true
+      if (data.customer_password || data.register_customer) {
+        try {
+          // Generate a default password if none provided but registration is requested
+          const password = data.customer_password || generateRandomPassword();
+          const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+          
+          // Parse customer name into first and last name
+          const nameParts = (data.customer_name || '').split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          
+          const customerData = {
+            first_name: firstName,
+            last_name: lastName,
+            phone: data.customer_phone || undefined,
+            address: data.delivery_address || undefined,
+            email: data.customer_email,
+            password: hashedPassword
+          };
+          
+          const [newCustomer] = await CustomerQuery.createCustomer(customerData);
+          registeredCustomer = newCustomer;
+          
+          console.log(`Auto-registered guest customer: ${data.customer_email}`);
+        } catch (error) {
+          console.error('Failed to auto-register guest customer:', error);
+          // Don't fail the order creation if customer registration fails
+          // The order can still be processed as a guest order
+        }
+      }
+    } else {
+      registeredCustomer = existingCustomer;
+    }
+  }
 
   // Generate order reference
   const reference = await OrderQuery.generateOrderReference();
@@ -182,7 +229,23 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderRespon
     }
   }
 
+  // Add customer registration info to response if applicable
+  if (registeredCustomer) {
+    (fullOrder as any).customer_registered = true;
+    (fullOrder as any).customer_id = registeredCustomer.id;
+  }
+
   return fullOrder;
+}
+
+// Helper function to generate a random password for auto-registered customers
+function generateRandomPassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }
 
 export async function getOrderById(id: number): Promise<OrderResponse | null> {

@@ -164,6 +164,11 @@ export async function getProductStats() {
   };
 }
 
+export async function getSimilarProducts(productId: number, limit: number = 10) {
+  const products = await Query.getSimilarProducts(productId, limit);
+  return products.map(formatProductResponse);
+}
+
 // Helper function to determine stock status
 function getStockStatus(stock: number): 'in_stock' | 'low_stock' | 'out_of_stock' {
   if (stock === 0) return 'out_of_stock';

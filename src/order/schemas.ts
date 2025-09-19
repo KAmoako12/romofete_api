@@ -12,7 +12,27 @@ export const createOrderSchema = Joi.object({
   delivery_address: Joi.string().max(500).optional(),
   customer_email: Joi.string().email().max(120).optional(),
   customer_phone: Joi.string().max(20).optional(),
-  customer_name: Joi.string().max(160).optional()
+  customer_name: Joi.string().max(160).optional(),
+  // For guest customers who want to be registered
+  customer_password: Joi.string().min(8).max(120).optional(),
+  register_customer: Joi.boolean().default(false).optional()
+}).custom((value, helpers) => {
+  // If user_id is not provided (guest order), require customer information
+  if (!value.user_id) {
+    if (!value.customer_email) {
+      return helpers.error('any.required', { label: 'customer_email' });
+    }
+    if (!value.customer_name) {
+      return helpers.error('any.required', { label: 'customer_name' });
+    }
+    if (!value.customer_phone) {
+      return helpers.error('any.required', { label: 'customer_phone' });
+    }
+    if (!value.delivery_address) {
+      return helpers.error('any.required', { label: 'delivery_address' });
+    }
+  }
+  return value;
 });
 
 export const updateOrderSchema = Joi.object({

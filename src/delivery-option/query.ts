@@ -11,7 +11,7 @@ export namespace Query {
     }
 
     export async function getDeliveryOptionByName(name: string) {
-        return knex(DB.DeliveryOptions).where({ name, is_deleted: false }).first();
+        return knex(DB.DeliveryOptions).where('name', name).where('is_deleted', false).first();
     }
 
     export async function createDeliveryOption(deliveryOption: CreateDeliveryOptionRequest) {

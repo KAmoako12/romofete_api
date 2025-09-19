@@ -21,7 +21,8 @@ import {
   getLowStockProducts,
   bulkUpdateStock,
   searchProducts,
-  getProductStats
+  getProductStats,
+  getSimilarProducts
 } from "./services";
 import { 
   requireAuthAndRole,
@@ -536,6 +537,64 @@ router.get("/type/:typeId", async (req, res) => {
     const products = await getProductsByType(typeId, Math.min(limit, 100));
     res.json(products);
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @openapi
+ * /products/{id}/similar:
+ *   get:
+ *     summary: Get similar products
+ *     description: Retrieves products similar to the specified product based on product type and price range
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Product ID to find similar products for
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of similar products to return
+ *     responses:
+ *       200:
+ *         description: Similar products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Invalid product ID
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Internal server error
+ */
+// GET /products/:id/similar - Get similar products (public endpoint)
+router.get("/:id/similar", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid product ID" });
+    }
+    
+    const limit = parseInt(req.query.limit as string) || 10;
+    const products = await getSimilarProducts(id, Math.min(limit, 50));
+    res.json(products);
+  } catch (err: any) {
+    if (err.message === "Product not found") {
+      return res.status(404).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 });
