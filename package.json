@@ -8,7 +8,7 @@
     "dev": "nodemon --watch \"./**/*.ts\" --exec ts-node index.ts",
     "build": "tsc",
     "test": "jest",
-    "prod": "pnpm build && node dist/index.js"
+    "prod": "pnpm build && knex migrate:latest && node dist/index.js"
   },
   "keywords": [],
   "author": "",

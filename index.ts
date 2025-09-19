@@ -2,16 +2,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { createApp } from './src/app';
-import { Database } from './src/_services/databaseService';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 
 const startServer = async () => {
   try {
-    // Run migrations
-    await Database.migrate();
-    console.log('Database migrated to latest.');
-    
     // Create and start the app
     const app = createApp();
     app.listen(PORT, () => {
@@ -31,4 +26,3 @@ if (require.main === module) {
 
 // Export the app factory for testing
 export { createApp };
-  
