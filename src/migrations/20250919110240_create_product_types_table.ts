@@ -1,7 +1,8 @@
 import type { Knex } from "knex";
 
+
 export async function up(knex: Knex): Promise<void> {
-    await knex.schema.createTable("product_types", (table) => {
+    await knex.schema.createTableIfNotExists("product_types", (table) => {
         table.increments("id").primary();
         table.string("name", 100).notNullable().unique();
         table.json("allowed_types").nullable(); // JSON field for allowed types array

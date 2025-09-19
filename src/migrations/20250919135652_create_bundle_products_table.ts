@@ -1,7 +1,7 @@
 import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
-    await knex.schema.createTable("bundle_products", (table) => {
+    await knex.schema.createTableIfNotExists("bundle_products", (table) => {
         table.increments("id").primary();
         table.integer("bundle_id").unsigned().notNullable();
         table.integer("product_id").unsigned().notNullable();
