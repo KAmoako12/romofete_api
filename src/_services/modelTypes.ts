@@ -228,3 +228,42 @@ export interface CreateBundleProductRequest {
   product_id: number;
   quantity: number;
 }
+
+export interface Collection {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateCollectionRequest {
+  name: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface UpdateCollectionRequest {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface CollectionProduct {
+  id: number;
+  collection_id: number;
+  product_id: number;
+  position: number;
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateCollectionProductRequest {
+  collection_id: number;
+  product_id: number;
+  position?: number;
+}

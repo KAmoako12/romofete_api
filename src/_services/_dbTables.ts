@@ -10,5 +10,7 @@ export const DB = {
   Transactions: "transactions",
   DeliveryOptions: "delivery_options",
   Bundles: "bundles",
-  BundleProducts: "bundle_products"
+  BundleProducts: "bundle_products",
+  Collections: "collections",
+  CollectionProducts: "collection_products"
 };

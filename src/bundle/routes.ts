@@ -13,7 +13,54 @@ import {
 const router = Router();
 const bundleService = new BundleService(Database.getDBInstance());
 
-// Create a new bundle
+/**
+ * @openapi
+ * /bundles:
+ *   post:
+ *     summary: Create bundle
+ *     description: Creates a new bundle with optional discount and initial products.
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, products]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               discount_percentage:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 100
+ *               is_active:
+ *                 type: boolean
+ *               products:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [product_id, quantity]
+ *                   properties:
+ *                     product_id:
+ *                       type: integer
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *     responses:
+ *       201:
+ *         description: Bundle created successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+ // Create a new bundle
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { error, value } = createBundleSchema.validate(req.body);
@@ -39,7 +86,54 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get all bundles with optional filters
+/**
+ * @openapi
+ * /bundles:
+ *   get:
+ *     summary: Get all bundles
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [name, created_at, discount_percentage]
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Bundles retrieved successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+ // Get all bundles with optional filters
 router.get("/", async (req: Request, res: Response) => {
   try {
     const { error, value } = bundleFiltersSchema.validate(req.query);
@@ -66,7 +160,32 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get bundle by ID
+/**
+ * @openapi
+ * /bundles/{id}:
+ *   get:
+ *     summary: Get bundle by ID
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bundle retrieved successfully
+ *       400:
+ *         description: Invalid bundle ID
+ *       404:
+ *         description: Bundle not found
+ *       500:
+ *         description: Server error
+ */
+ // Get bundle by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -92,7 +211,49 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Update bundle
+/**
+ * @openapi
+ * /bundles/{id}:
+ *   put:
+ *     summary: Update bundle
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               discount_percentage:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 100
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Bundle updated successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Bundle not found
+ *       500:
+ *         description: Server error
+ */
+ // Update bundle
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -127,7 +288,32 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Delete bundle
+/**
+ * @openapi
+ * /bundles/{id}:
+ *   delete:
+ *     summary: Delete bundle
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bundle deleted successfully
+ *       400:
+ *         description: Invalid bundle ID
+ *       404:
+ *         description: Bundle not found
+ *       500:
+ *         description: Server error
+ */
+ // Delete bundle
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -152,7 +338,47 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Add a product to a bundle
+/**
+ * @openapi
+ * /bundles/{id}/products:
+ *   post:
+ *     summary: Add product to bundle
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [product_id, quantity]
+ *             properties:
+ *               product_id:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *     responses:
+ *       201:
+ *         description: Product added to bundle successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Bundle or Product not found
+ *       409:
+ *         description: Product already in bundle
+ *       500:
+ *         description: Server error
+ */
+ // Add a product to a bundle
 router.post("/:id/products", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -194,7 +420,53 @@ router.post("/:id/products", async (req: Request, res: Response) => {
   }
 });
 
-// Bulk add products to a bundle
+/**
+ * @openapi
+ * /bundles/{id}/products/bulk:
+ *   post:
+ *     summary: Bulk add products to bundle
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [products]
+ *             properties:
+ *               products:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [product_id, quantity]
+ *                   properties:
+ *                     product_id:
+ *                       type: integer
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *     responses:
+ *       201:
+ *         description: Products added to bundle successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Bundle or Product not found
+ *       409:
+ *         description: One or more products already in bundle
+ *       500:
+ *         description: Server error
+ */
+ // Bulk add products to a bundle
 router.post("/:id/products/bulk", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -236,7 +508,37 @@ router.post("/:id/products/bulk", async (req: Request, res: Response) => {
   }
 });
 
-// Remove a product from a bundle
+/**
+ * @openapi
+ * /bundles/{id}/products/{productId}:
+ *   delete:
+ *     summary: Remove product from bundle
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Product removed from bundle successfully
+ *       400:
+ *         description: Invalid IDs
+ *       404:
+ *         description: Bundle or product not found in bundle
+ *       500:
+ *         description: Server error
+ */
+ // Remove a product from a bundle
 router.delete("/:id/products/:productId", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -271,7 +573,48 @@ router.delete("/:id/products/:productId", async (req: Request, res: Response) =>
   }
 });
 
-// Update product quantity in a bundle
+/**
+ * @openapi
+ * /bundles/{id}/products/{productId}:
+ *   put:
+ *     summary: Update bundle product quantity
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [quantity]
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *     responses:
+ *       200:
+ *         description: Product quantity updated successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Bundle or Product not found/in bundle
+ *       500:
+ *         description: Server error
+ */
+ // Update product quantity in a bundle
 router.put("/:id/products/:productId", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -315,7 +658,32 @@ router.put("/:id/products/:productId", async (req: Request, res: Response) => {
   }
 });
 
-// Calculate bundle price with discount
+/**
+ * @openapi
+ * /bundles/{id}/price:
+ *   get:
+ *     summary: Calculate bundle price
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bundle price calculated successfully
+ *       400:
+ *         description: Invalid bundle ID
+ *       404:
+ *         description: Bundle not found
+ *       500:
+ *         description: Server error
+ */
+ // Calculate bundle price with discount
 router.get("/:id/price", async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
@@ -341,7 +709,22 @@ router.get("/:id/price", async (req: Request, res: Response) => {
   }
 });
 
-// Get bundle statistics
+/**
+ * @openapi
+ * /bundles/stats/overview:
+ *   get:
+ *     summary: Get bundle statistics
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bundle statistics retrieved successfully
+ *       500:
+ *         description: Server error
+ */
+ // Get bundle statistics
 router.get("/stats/overview", async (req: Request, res: Response) => {
   try {
     const stats = await bundleService.getBundleStats();
@@ -358,7 +741,37 @@ router.get("/stats/overview", async (req: Request, res: Response) => {
   }
 });
 
-// Get products in same bundles (for similar products feature)
+/**
+ * @openapi
+ * /bundles/similar-products/{productId}:
+ *   get:
+ *     summary: Get similar products based on shared bundles
+ *     tags:
+ *       - Bundles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Similar products retrieved successfully
+ *       400:
+ *         description: Invalid product ID
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Server error
+ */
+ // Get products in same bundles (for similar products feature)
 router.get("/similar-products/:productId", async (req: Request, res: Response) => {
   try {
     const productId = parseInt(req.params.productId);
