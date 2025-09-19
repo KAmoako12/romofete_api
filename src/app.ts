@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import userRoutes from './user/routes';
@@ -14,6 +15,11 @@ const createApp = () => {
   const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 
   // Middleware
+  app.use(cors({
+    origin: '*', // Accept all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -29,6 +35,9 @@ const createApp = () => {
       servers: [
         {
           url: `http://localhost:${PORT}`
+        },
+        {
+          url: 'https://romofete-api-1.onrender.com'
         }
       ],
       components: {
