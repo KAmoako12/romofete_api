@@ -3,6 +3,9 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import userRoutes from './user/routes';
 import customerRoutes from './customer/routes';
+import deliveryOptionRoutes from './delivery-option/routes';
+import productRoutes from './product/routes';
+import orderRoutes from './order/routes';
 import { Database } from './_services/databaseService';
 
 const createApp = () => {
@@ -38,7 +41,7 @@ const createApp = () => {
         }
       }
     },
-    apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts']
+    apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts', './src/delivery-option/routes.ts', './src/product/routes.ts', './src/order/routes.ts']
   };
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -97,6 +100,9 @@ const createApp = () => {
 
   app.use('/users', userRoutes);
   app.use('/customers', customerRoutes);
+  app.use('/delivery-options', deliveryOptionRoutes);
+  app.use('/products', productRoutes);
+  app.use('/orders', orderRoutes);
 
   return app;
 };
