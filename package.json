@@ -7,7 +7,8 @@
     "start": "ts-node index.ts",
     "dev": "nodemon --watch \"./**/*.ts\" --exec ts-node index.ts",
     "build": "tsc",
-    "test": "jest"
+    "test": "jest",
+    "prod": "pnpm build && node dist/index.js"
   },
   "keywords": [],
   "author": "",
