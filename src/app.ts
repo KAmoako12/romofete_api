@@ -6,6 +6,7 @@ import userRoutes from './user/routes';
 import customerRoutes from './customer/routes';
 import deliveryOptionRoutes from './delivery-option/routes';
 import productRoutes from './product/routes';
+import productTypeRoutes from './product-type/routes';
 import orderRoutes from './order/routes';
 import bundleRoutes from './bundle/routes';
 import { Database } from './_services/databaseService';
@@ -51,10 +52,16 @@ const createApp = () => {
         }
       }
     },
-    apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts', './src/delivery-option/routes.ts', './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts']
+    apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts', './src/delivery-option/routes.ts', 
+      './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts', './src/product-type/routes.ts']
   };
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
+  // Expose raw Swagger JSON
+  app.get('/swagger.json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
   
   // Swagger UI options to enable authorization
   const swaggerUiOptions = {
@@ -112,6 +119,7 @@ const createApp = () => {
   app.use('/customers', customerRoutes);
   app.use('/delivery-options', deliveryOptionRoutes);
   app.use('/products', productRoutes);
+  app.use('/product-types', productTypeRoutes);
   app.use('/orders', orderRoutes);
   app.use('/bundles', bundleRoutes);
 

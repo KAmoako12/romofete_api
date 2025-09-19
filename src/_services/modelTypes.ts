@@ -26,6 +26,18 @@ export interface CreateProductTypeRequest {
   allowed_types?: string[];
 }
 
+export interface UpdateProductTypeRequest {
+  name?: string;
+  allowed_types?: string[] | null;
+}
+
+export interface ProductTypeResponse {
+  id: number;
+  name: string;
+  allowed_types: string[] | null;
+  created_at: string;
+}
+
 export interface Product {
   id: number;
   name: string;
