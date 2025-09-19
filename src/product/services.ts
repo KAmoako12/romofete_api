@@ -1,6 +1,8 @@
 // This file contains service functions and business logic for Product-related operations.
 import { Query, ProductFilters, PaginationOptions } from "./query";
 import { CreateProductRequest, UpdateProductRequest } from "../_services/modelTypes";
+import { BundleQuery } from "../bundle/query";
+import { Database } from "../_services/databaseService";
 
 export interface ProductResponse {
   id: number;
@@ -165,7 +167,32 @@ export async function getProductStats() {
 }
 
 export async function getSimilarProducts(productId: number, limit: number = 10) {
-  const products = await Query.getSimilarProducts(productId, limit);
+  const bundleQuery = new BundleQuery(Database.getDBInstance());
+  
+  // First, try to get products from the same bundles
+  const bundleSimilarProducts = await bundleQuery.getProductsInSameBundles(productId, Math.ceil(limit * 0.7));
+  
+  // If we don't have enough products from bundles, get more using the original algorithm
+  const remainingLimit = limit - bundleSimilarProducts.length;
+  let additionalProducts: any[] = [];
+  
+  if (remainingLimit > 0) {
+    const originalSimilarProducts = await Query.getSimilarProducts(productId, remainingLimit);
+    
+    // Filter out products that are already in the bundle results
+    const bundleProductIds = new Set(bundleSimilarProducts.map((p: any) => p.id));
+    additionalProducts = originalSimilarProducts.filter((p: any) => !bundleProductIds.has(p.id));
+  }
+  
+  // Combine and format the results
+  const allSimilarProducts = [...bundleSimilarProducts, ...additionalProducts].slice(0, limit);
+  return allSimilarProducts.map(formatProductResponse);
+}
+
+// New function specifically for getting products from same bundles
+export async function getProductsFromSameBundles(productId: number, limit: number = 10) {
+  const bundleQuery = new BundleQuery(Database.getDBInstance());
+  const products = await bundleQuery.getProductsInSameBundles(productId, limit);
   return products.map(formatProductResponse);
 }
 

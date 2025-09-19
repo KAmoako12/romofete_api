@@ -8,5 +8,7 @@ export const DB = {
   Orders: "orders",
   OrderItems: "order_items",
   Transactions: "transactions",
-  DeliveryOptions: "delivery_options"
+  DeliveryOptions: "delivery_options",
+  Bundles: "bundles",
+  BundleProducts: "bundle_products"
 };
