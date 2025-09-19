@@ -2,7 +2,7 @@ import type { Knex } from "knex";
 
 
 export async function up(knex: Knex): Promise<void> {
-    await knex.schema.createTable("users", (table) => {
+  await knex.schema.createTable("users", (table) => {
     table.increments("id").primary();
     table.string("username", 80).notNullable().unique();
     table.string("email", 120).notNullable().unique();
@@ -20,6 +20,6 @@ export async function up(knex: Knex): Promise<void> {
 
 
 export async function down(knex: Knex): Promise<void> {
-    await knex.schema.dropTableIfExists("users");
+  await knex.schema.dropTableIfExists("users");
 }
 

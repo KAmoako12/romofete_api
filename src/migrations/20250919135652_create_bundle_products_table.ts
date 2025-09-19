@@ -12,6 +12,10 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp("deleted_at").nullable();
         table.boolean("is_deleted").notNullable().defaultTo(false);
 
+        // Foreign key constraints
+        table.foreign("bundle_id").references("id").inTable("bundles").onDelete("CASCADE");
+        table.foreign("product_id").references("id").inTable("products").onDelete("CASCADE");
+
         // Unique constraint to prevent duplicate product in same bundle
         table.unique(["bundle_id", "product_id"]);
 
