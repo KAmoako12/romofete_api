@@ -39,7 +39,8 @@ export async function addProduct(data: CreateProductRequest) {
 
   // Validate product type exists (this would require a product type query)
   // For now, we'll assume the foreign key constraint will handle this
-
+  data.images = JSON.stringify(data.images || []);
+  data.extra_properties = JSON.stringify(data.extra_properties || {});
   const [product] = await Query.createProduct(data);
   return formatProductResponse(product);
 }

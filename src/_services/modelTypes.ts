@@ -58,8 +58,8 @@ export interface CreateProductRequest {
   price: number;
   stock: number;
   product_type_id: number;
-  images?: string[];
-  extra_properties?: Record<string, any>;
+  images?: string[] | string;
+  extra_properties?: Record<string, any> | string;
 }
 
 export interface UpdateProductRequest {
