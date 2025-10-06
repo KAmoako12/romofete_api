@@ -78,6 +78,8 @@ export async function updateProduct(id: number, updates: UpdateProductRequest) {
     }
   }
 
+  updates.images = updates.images ? JSON.stringify(updates.images) : existingProduct.images;
+  updates.extra_properties = updates.extra_properties ? JSON.stringify(updates.extra_properties) : existingProduct.extra_properties;
   const [updatedProduct] = await Query.updateProduct(id, updates);
   return formatProductResponse(updatedProduct);
 }
