@@ -5,10 +5,11 @@ import { CreateProductRequest, UpdateProductRequest } from "../_services/modelTy
 
 export interface ProductFilters {
   product_type_id?: number;
-  min_price?: number;
-  max_price?: number;
+  minPrice?: number;
+  maxPrice?: number;
   in_stock?: boolean;
   search?: string;
+  occasion?: string;
 }
 
 export interface PaginationOptions {
@@ -52,10 +53,11 @@ export namespace Query {
     export async function listProducts(filters: ProductFilters = {}, pagination: PaginationOptions = {}) {
         const {
             product_type_id,
-            min_price,
-            max_price,
+            minPrice,
+            maxPrice,
             in_stock,
-            search
+            search,
+            occasion
         } = filters;
 
         const {
@@ -76,12 +78,12 @@ export namespace Query {
             query = query.where(`${DB.Products}.product_type_id`, product_type_id);
         }
 
-        if (min_price !== undefined) {
-            query = query.where(`${DB.Products}.price`, '>=', min_price);
+        if (minPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '>=', minPrice);
         }
 
-        if (max_price !== undefined) {
-            query = query.where(`${DB.Products}.price`, '<=', max_price);
+        if (maxPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '<=', maxPrice);
         }
 
         if (in_stock === true) {
@@ -95,6 +97,16 @@ export namespace Query {
                 this.where(`${DB.Products}.name`, 'ilike', `%${search}%`)
                     .orWhere(`${DB.Products}.description`, 'ilike', `%${search}%`)
                     .orWhere(`${DB.ProductTypes}.name`, 'ilike', `%${search}%`);
+            });
+        }
+
+        if (occasion) {
+            query = query.where(function() {
+                // Search in product type name and allowed_types
+                this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
+                    .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
+                    // Search for specific "occasion" key in product metadata
+                    .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
             });
         }
 

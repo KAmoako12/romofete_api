@@ -97,6 +97,11 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Reque
  *         schema:
  *           type: string
  *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *         description: Search collections by occasion (searches product types and product metadata associated with collections)
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer

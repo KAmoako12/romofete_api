@@ -21,9 +21,12 @@ export async function getProductTypeById(id: number) {
   return formatProductTypeResponse(productType);
 }
 
-export async function listProductTypes() {
-  const productTypes = await Query.listProductTypes();
-  return productTypes.map(formatProductTypeResponse);
+export async function listProductTypes(filters: any = {}, pagination: any = {}) {
+  const result = await Query.listProductTypes(filters, pagination);
+  return {
+    product_types: result.product_types.map(formatProductTypeResponse),
+    pagination: result.pagination
+  };
 }
 
 export async function updateProductType(id: number, updates: UpdateProductTypeRequest) {

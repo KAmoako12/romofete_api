@@ -194,17 +194,22 @@ const router = Router();
  *           type: string
  *         description: Search term for product name, description, or type
  *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *         description: Search products by occasion (searches product types and product metadata)
+ *       - in: query
  *         name: product_type_id
  *         schema:
  *           type: integer
  *         description: Filter by product type ID
  *       - in: query
- *         name: min_price
+ *         name: minPrice
  *         schema:
  *           type: number
  *         description: Minimum price filter
  *       - in: query
- *         name: max_price
+ *         name: maxPrice
  *         schema:
  *           type: number
  *         description: Maximum price filter

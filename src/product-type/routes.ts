@@ -1,7 +1,7 @@
 // This file defines the API routes/endpoints for ProductType-related operations.
 
 import { Router } from "express";
-import { createProductTypeSchema, updateProductTypeSchema } from "./schemas";
+import { createProductTypeSchema, updateProductTypeSchema, productTypeFiltersSchema } from "./schemas";
 import {
   addProductType,
   getProductTypeById,
@@ -100,26 +100,100 @@ const router = Router();
  * @openapi
  * /product-types:
  *   get:
- *     summary: Get all product types
- *     description: Retrieves a list of all available product types
+ *     summary: Get all product types with filtering and pagination
+ *     description: Retrieves a paginated list of product types with optional filtering and search
  *     tags: [Product Types]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for product type name
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *         description: Search product types by occasion (searches name and allowed_types)
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price filter - returns product types that have products within this price range
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price filter - returns product types that have products within this price range
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [name, created_at]
+ *           default: created_at
+ *         description: Sort field
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
  *     responses:
  *       200:
- *         description: List of product types retrieved successfully
+ *         description: Product types retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/ProductType'
+ *               type: object
+ *               properties:
+ *                 product_types:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ProductType'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *       400:
+ *         description: Invalid query parameters
  *       500:
  *         description: Internal server error
  */
-// GET /product-types - List all product types (public endpoint)
+// GET /product-types - List product types with filtering and pagination (public endpoint)
 router.get("/", async (req, res) => {
   try {
-    const productTypes = await listProductTypes();
-    res.json(productTypes);
+    const { error, value } = productTypeFiltersSchema.validate(req.query);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { page, limit, sort_by, sort_order, ...filters } = value;
+    const pagination = { page, limit, sort_by, sort_order };
+
+    const result = await listProductTypes(filters, pagination);
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

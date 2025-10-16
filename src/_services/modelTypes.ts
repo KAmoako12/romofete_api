@@ -233,6 +233,8 @@ export interface Collection {
   id: number;
   name: string;
   description: string | null;
+  image: string | null;
+  product_type_id: number | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -243,12 +245,16 @@ export interface Collection {
 export interface CreateCollectionRequest {
   name: string;
   description?: string;
+  image?: string;
+  product_type_id?: number;
   is_active?: boolean;
 }
 
 export interface UpdateCollectionRequest {
   name?: string;
   description?: string;
+  image?: string;
+  product_type_id?: number;
   is_active?: boolean;
 }
 

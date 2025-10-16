@@ -22,10 +22,11 @@ export const updateProductSchema = Joi.object({
 
 export const productFiltersSchema = Joi.object({
   product_type_id: Joi.number().integer().positive().optional(),
-  min_price: Joi.number().min(0).precision(2).optional(),
-  max_price: Joi.number().min(0).precision(2).optional(),
+  minPrice: Joi.number().min(0).precision(2).optional(),
+  maxPrice: Joi.number().min(0).precision(2).optional(),
   in_stock: Joi.boolean().optional(),
   search: Joi.string().min(1).max(100).optional(),
+  occasion: Joi.string().min(1).max(100).optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(20).optional(),
   sort_by: Joi.string().valid('name', 'price', 'created_at', 'stock', 'product_type_name').default('created_at').optional(),

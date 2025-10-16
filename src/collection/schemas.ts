@@ -3,6 +3,8 @@ import Joi from "joi";
 export const createCollectionSchema = Joi.object({
   name: Joi.string().min(1).max(200).required(),
   description: Joi.string().max(2000).optional().allow(""),
+  image: Joi.string().max(500).optional().allow(""),
+  product_type_id: Joi.number().integer().positive().optional(),
   is_active: Joi.boolean().optional().default(true),
   products: Joi.array()
     .items(
@@ -18,6 +20,8 @@ export const createCollectionSchema = Joi.object({
 export const updateCollectionSchema = Joi.object({
   name: Joi.string().min(1).max(200).optional(),
   description: Joi.string().max(2000).optional().allow(""),
+  image: Joi.string().max(500).optional().allow(""),
+  product_type_id: Joi.number().integer().positive().optional().allow(null),
   is_active: Joi.boolean().optional()
 }).min(1);
 
@@ -33,6 +37,7 @@ export const updateCollectionProductSchema = Joi.object({
 export const collectionFiltersSchema = Joi.object({
   is_active: Joi.boolean().optional(),
   search: Joi.string().min(1).max(100).optional(),
+  occasion: Joi.string().min(1).max(100).optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(20).optional(),
   sort_by: Joi.string().valid("name", "created_at", "updated_at").default("created_at").optional(),

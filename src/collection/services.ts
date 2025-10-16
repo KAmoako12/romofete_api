@@ -52,6 +52,7 @@ export class CollectionService {
   async getCollections(filters: {
     is_active?: boolean;
     search?: string;
+    occasion?: string;
     page?: number;
     limit?: number;
     sort_by?: string;
