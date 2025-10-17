@@ -35,21 +35,42 @@ const collectionService = new CollectionService(Database.getDBInstance());
  *             properties:
  *               name:
  *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 200
+ *                 description: Collection name
  *               description:
  *                 type: string
+ *                 maxLength: 2000
+ *                 description: Collection description (optional, can be empty string)
+ *               image:
+ *                 type: string
+ *                 maxLength: 500
+ *                 description: Collection image URL (optional, can be empty string)
+ *               product_type_id:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Associated product type ID (optional)
  *               is_active:
  *                 type: boolean
+ *                 default: true
+ *                 description: Whether the collection is active
  *               products:
  *                 type: array
+ *                 minItems: 1
+ *                 description: Initial products to add to collection (optional)
  *                 items:
  *                   type: object
  *                   required: [product_id]
  *                   properties:
  *                     product_id:
  *                       type: integer
+ *                       minimum: 1
+ *                       description: Product ID to add
  *                     position:
  *                       type: integer
  *                       minimum: 0
+ *                       default: 0
+ *                       description: Position of product in collection
  *     responses:
  *       201:
  *         description: Collection created successfully
@@ -85,6 +106,7 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Reque
  * /collections:
  *   get:
  *     summary: Get all collections
+ *     description: Retrieve collections with filtering, searching, pagination and sorting options.
  *     tags:
  *       - Collections
  *     parameters:
@@ -92,36 +114,50 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Reque
  *         name: is_active
  *         schema:
  *           type: boolean
+ *         description: Filter by collection active status
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Search collections by name or description
  *       - in: query
  *         name: occasion
  *         schema:
  *           type: string
+ *           minLength: 1
+ *           maxLength: 100
  *         description: Search collections by occasion (searches product types and product metadata associated with collections)
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
+ *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           default: 20
+ *           minimum: 1
  *           maximum: 100
+ *           default: 20
+ *         description: Number of items per page
  *       - in: query
  *         name: sort_by
  *         schema:
  *           type: string
  *           enum: [name, created_at, updated_at]
+ *           default: created_at
+ *         description: Field to sort by
  *       - in: query
  *         name: sort_order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
  *     responses:
  *       200:
  *         description: Collections retrieved successfully
@@ -195,6 +231,7 @@ router.get("/:id", async (req: Request, res: Response) => {
  * /collections/{id}:
  *   put:
  *     summary: Update collection
+ *     description: Update collection properties. At least one field must be provided.
  *     tags:
  *       - Collections
  *     security:
@@ -205,19 +242,36 @@ router.get("/:id", async (req: Request, res: Response) => {
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Collection ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               name:
  *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 200
+ *                 description: Collection name
  *               description:
  *                 type: string
+ *                 maxLength: 2000
+ *                 description: Collection description (can be empty string)
+ *               image:
+ *                 type: string
+ *                 maxLength: 500
+ *                 description: Collection image URL (can be empty string)
+ *               product_type_id:
+ *                 type: integer
+ *                 minimum: 1
+ *                 nullable: true
+ *                 description: Associated product type ID (can be set to null)
  *               is_active:
  *                 type: boolean
+ *                 description: Whether the collection is active
  *     responses:
  *       200:
  *         description: Collection updated successfully
@@ -297,6 +351,7 @@ router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: 
  * /collections/{id}/products:
  *   post:
  *     summary: Add product to collection
+ *     description: Add a single product to a collection with optional position.
  *     tags:
  *       - Collections
  *     security:
@@ -307,6 +362,7 @@ router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: 
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Collection ID
  *     requestBody:
  *       required: true
  *       content:
@@ -317,9 +373,13 @@ router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: 
  *             properties:
  *               product_id:
  *                 type: integer
+ *                 minimum: 1
+ *                 description: Product ID to add to collection
  *               position:
  *                 type: integer
  *                 minimum: 0
+ *                 default: 0
+ *                 description: Position of product in collection
  *     responses:
  *       201:
  *         description: Product added to collection successfully
@@ -364,6 +424,7 @@ router.post("/:id/products", ...requireAuthAndRole("admin", "superAdmin"), async
  * /collections/{id}/products/bulk:
  *   post:
  *     summary: Bulk add products to collection
+ *     description: Add multiple products to a collection at once (maximum 50 products).
  *     tags:
  *       - Collections
  *     security:
@@ -374,6 +435,7 @@ router.post("/:id/products", ...requireAuthAndRole("admin", "superAdmin"), async
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Collection ID
  *     requestBody:
  *       required: true
  *       content:
@@ -384,15 +446,22 @@ router.post("/:id/products", ...requireAuthAndRole("admin", "superAdmin"), async
  *             properties:
  *               products:
  *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 50
+ *                 description: Array of products to add to collection
  *                 items:
  *                   type: object
  *                   required: [product_id]
  *                   properties:
  *                     product_id:
  *                       type: integer
+ *                       minimum: 1
+ *                       description: Product ID to add to collection
  *                     position:
  *                       type: integer
  *                       minimum: 0
+ *                       default: 0
+ *                       description: Position of product in collection
  *     responses:
  *       201:
  *         description: Products added to collection successfully
@@ -437,6 +506,7 @@ router.post("/:id/products/bulk", ...requireAuthAndRole("admin", "superAdmin"), 
  * /collections/{id}/products/{productId}:
  *   delete:
  *     summary: Remove product from collection
+ *     description: Remove a specific product from a collection.
  *     tags:
  *       - Collections
  *     security:
@@ -447,18 +517,20 @@ router.post("/:id/products/bulk", ...requireAuthAndRole("admin", "superAdmin"), 
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Collection ID
  *       - in: path
  *         name: productId
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Product ID to remove from collection
  *     responses:
  *       200:
  *         description: Product removed from collection successfully
  *       400:
- *         description: Invalid IDs
+ *         description: Invalid collection ID or product ID
  *       404:
- *         description: Collection or product not in collection
+ *         description: Collection not found or product not in collection
  *       500:
  *         description: Server error
  */
@@ -485,6 +557,7 @@ router.delete("/:id/products/:productId", ...requireAuthAndRole("admin", "superA
  * /collections/{id}/products/{productId}:
  *   put:
  *     summary: Update product position in collection
+ *     description: Update the position/order of a product within a collection.
  *     tags:
  *       - Collections
  *     security:
@@ -495,11 +568,13 @@ router.delete("/:id/products/:productId", ...requireAuthAndRole("admin", "superA
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Collection ID
  *       - in: path
  *         name: productId
  *         required: true
  *         schema:
  *           type: integer
+ *         description: Product ID whose position to update
  *     requestBody:
  *       required: true
  *       content:
@@ -511,13 +586,14 @@ router.delete("/:id/products/:productId", ...requireAuthAndRole("admin", "superA
  *               position:
  *                 type: integer
  *                 minimum: 0
+ *                 description: New position for the product in the collection
  *     responses:
  *       200:
  *         description: Product position updated successfully
  *       400:
- *         description: Validation error
+ *         description: Validation error or invalid collection/product IDs
  *       404:
- *         description: Collection or Product not found/in collection
+ *         description: Collection not found or product not in collection
  *       500:
  *         description: Server error
  */
