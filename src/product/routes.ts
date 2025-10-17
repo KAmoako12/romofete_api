@@ -105,34 +105,35 @@ const router = Router();
  *       properties:
  *         name:
  *           type: string
+ *           minLength: 1
  *           maxLength: 200
- *           description: Name of the product
+ *           description: Product name (required, 1-200 characters)
  *         description:
  *           type: string
  *           maxLength: 2000
- *           description: Product description
+ *           description: Product description (optional, max 2000 characters, can be empty string)
  *         price:
  *           type: number
  *           minimum: 0.01
- *           description: Product price
+ *           description: Product price (required, must be positive with 2 decimal precision)
  *         stock:
  *           type: integer
  *           minimum: 0
- *           description: Initial stock quantity
+ *           description: Initial stock quantity (required, minimum 0)
  *         product_type_id:
  *           type: integer
  *           minimum: 1
- *           description: ID of the product type
+ *           description: Product type ID (required, must be positive integer)
  *         images:
  *           type: array
  *           items:
  *             type: string
  *             format: uri
  *           maxItems: 10
- *           description: Array of image URLs
+ *           description: Array of image URLs (optional, maximum 10 valid URIs)
  *         extra_properties:
  *           type: object
- *           description: Additional product properties
+ *           description: Additional product properties as JSON object (optional)
  *       example:
  *         name: "Premium Headphones"
  *         description: "High-quality wireless headphones"
@@ -179,7 +180,7 @@ const router = Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number
+ *         description: Page number (minimum 1)
  *       - in: query
  *         name: limit
  *         schema:
@@ -187,32 +188,39 @@ const router = Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Number of items per page
+ *         description: Number of items per page (1-100)
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for product name, description, or type
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Search term for product name, description, or type (1-100 characters)
  *       - in: query
  *         name: occasion
  *         schema:
  *           type: string
- *         description: Search products by occasion (searches product types and product metadata)
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Search products by occasion (1-100 characters, searches product types and product metadata)
  *       - in: query
  *         name: product_type_id
  *         schema:
  *           type: integer
- *         description: Filter by product type ID
+ *           minimum: 1
+ *         description: Filter by product type ID (must be positive integer)
  *       - in: query
  *         name: minPrice
  *         schema:
  *           type: number
- *         description: Minimum price filter
+ *           minimum: 0
+ *         description: Minimum price filter (minimum 0, 2 decimal precision)
  *       - in: query
  *         name: maxPrice
  *         schema:
  *           type: number
- *         description: Maximum price filter
+ *           minimum: 0
+ *         description: Maximum price filter (minimum 0, 2 decimal precision)
  *       - in: query
  *         name: in_stock
  *         schema:
@@ -673,30 +681,39 @@ router.get("/:id", async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               name:
  *                 type: string
+ *                 minLength: 1
  *                 maxLength: 200
+ *                 description: Product name (1-200 characters)
  *               description:
  *                 type: string
  *                 maxLength: 2000
+ *                 description: Product description (max 2000 characters, can be empty string)
  *               price:
  *                 type: number
  *                 minimum: 0.01
+ *                 description: Product price (must be positive with 2 decimal precision)
  *               stock:
  *                 type: integer
  *                 minimum: 0
+ *                 description: Stock quantity (minimum 0)
  *               product_type_id:
  *                 type: integer
  *                 minimum: 1
+ *                 description: Product type ID (must be positive integer)
  *               images:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: uri
  *                 maxItems: 10
+ *                 description: Array of image URLs (maximum 10 valid URIs)
  *               extra_properties:
  *                 type: object
+ *                 description: Additional product properties as JSON object
  *     responses:
  *       200:
  *         description: Product updated successfully
@@ -830,7 +847,7 @@ router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req, 
  *               quantity:
  *                 type: integer
  *                 minimum: 1
- *                 description: Quantity to add or subtract
+ *                 description: Quantity to add or subtract (must be positive integer)
  *               operation:
  *                 type: string
  *                 enum: [increase, decrease]
@@ -960,6 +977,7 @@ router.get("/:id/availability", async (req, res) => {
  *                 type: array
  *                 minItems: 1
  *                 maxItems: 50
+ *                 description: Array of stock updates (1-50 items)
  *                 items:
  *                   type: object
  *                   required:
@@ -970,12 +988,15 @@ router.get("/:id/availability", async (req, res) => {
  *                     product_id:
  *                       type: integer
  *                       minimum: 1
+ *                       description: Product ID (must be positive integer)
  *                     quantity:
  *                       type: integer
  *                       minimum: 1
+ *                       description: Quantity to update (must be positive integer)
  *                     operation:
  *                       type: string
  *                       enum: [increase, decrease]
+ *                       description: Whether to increase or decrease stock
  *     responses:
  *       200:
  *         description: Bulk stock update completed

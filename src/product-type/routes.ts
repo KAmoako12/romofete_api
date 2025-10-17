@@ -52,29 +52,34 @@ const router = Router();
  *         name:
  *           type: string
  *           maxLength: 100
- *           description: Name of the product type
+ *           description: Product type name (required, max 100 characters)
  *         allowed_types:
  *           type: array
  *           items:
  *             type: string
- *           description: Optional list of allowed sub-types
+ *             maxLength: 100
+ *           maxItems: 50
+ *           description: Optional list of allowed sub-types (max 50 items, each max 100 chars)
  *       example:
  *         name: "Electronics"
  *         allowed_types: ["phones", "laptops"]
  * 
  *     UpdateProductTypeRequest:
  *       type: object
+ *       minProperties: 1
  *       properties:
  *         name:
  *           type: string
  *           maxLength: 100
- *           description: Name of the product type
+ *           description: Product type name (max 100 characters)
  *         allowed_types:
  *           type: array
  *           nullable: true
  *           items:
  *             type: string
- *           description: Optional list of allowed sub-types (set null to clear)
+ *             maxLength: 100
+ *           maxItems: 50
+ *           description: Optional list of allowed sub-types (max 50 items, each max 100 chars, set null to clear)
  *       example:
  *         name: "Consumer Electronics"
  *         allowed_types: ["audio", "tv"]
@@ -108,22 +113,28 @@ const router = Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for product type name
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Search term for product type name (1-100 characters)
  *       - in: query
  *         name: occasion
  *         schema:
  *           type: string
- *         description: Search product types by occasion (searches name and allowed_types)
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Search product types by occasion (1-100 characters, searches name and allowed_types)
  *       - in: query
  *         name: minPrice
  *         schema:
  *           type: number
- *         description: Minimum price filter - returns product types that have products within this price range
+ *           minimum: 0
+ *         description: Minimum price filter - returns product types that have products within this price range (minimum 0, 2 decimal precision)
  *       - in: query
  *         name: maxPrice
  *         schema:
  *           type: number
- *         description: Maximum price filter - returns product types that have products within this price range
+ *           minimum: 0
+ *         description: Maximum price filter - returns product types that have products within this price range (minimum 0, 2 decimal precision)
  *       - in: query
  *         name: page
  *         schema:
