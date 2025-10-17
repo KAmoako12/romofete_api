@@ -158,25 +158,35 @@ export class CollectionQuery {
       .offset(offset)
       .select("*");
 
-    // Attach counts
+    // Attach products with full details including images
     const withStats = await Promise.all(
       collections.map(async (c) => {
         const products = await this.db(DB.CollectionProducts)
           .join(DB.Products, `${DB.CollectionProducts}.product_id`, `${DB.Products}.id`)
+          .join(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
           .where({
             [`${DB.CollectionProducts}.collection_id`]: c.id,
             [`${DB.CollectionProducts}.is_deleted`]: false,
             [`${DB.Products}.is_deleted`]: false
           })
           .select(
+            `${DB.CollectionProducts}.id as collection_product_id`,
             `${DB.CollectionProducts}.position`,
             `${DB.Products}.id as product_id`,
             `${DB.Products}.name as product_name`,
-            `${DB.Products}.price as product_price`
-          );
+            `${DB.Products}.description as product_description`,
+            `${DB.Products}.price as product_price`,
+            `${DB.Products}.stock as product_stock`,
+            `${DB.Products}.images as product_images`,
+            `${DB.Products}.extra_properties as product_extra_properties`,
+            `${DB.ProductTypes}.name as product_type_name`
+          )
+          .orderBy(`${DB.CollectionProducts}.position`, "asc")
+          .orderBy(`${DB.Products}.created_at`, "desc");
 
         return {
           ...c,
+          products,
           products_count: products.length,
           // aggregate total value; position doesn't affect value
           total_value: products.reduce((sum: number, p: any) => sum + parseFloat(p.product_price), 0)

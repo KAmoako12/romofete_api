@@ -161,6 +161,82 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Reque
  *     responses:
  *       200:
  *         description: Collections retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Collections retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       image:
+ *                         type: string
+ *                       product_type_id:
+ *                         type: integer
+ *                       is_active:
+ *                         type: boolean
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                       products:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             collection_product_id:
+ *                               type: integer
+ *                             position:
+ *                               type: integer
+ *                             product_id:
+ *                               type: integer
+ *                             product_name:
+ *                               type: string
+ *                             product_description:
+ *                               type: string
+ *                             product_price:
+ *                               type: string
+ *                             product_stock:
+ *                               type: integer
+ *                             product_images:
+ *                               type: array
+ *                               items:
+ *                                 type: string
+ *                             product_extra_properties:
+ *                               type: object
+ *                             product_type_name:
+ *                               type: string
+ *                       products_count:
+ *                         type: integer
+ *                       total_value:
+ *                         type: number
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       400:
  *         description: Validation error
  *       500:
