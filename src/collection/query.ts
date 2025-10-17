@@ -14,9 +14,11 @@ export class CollectionQuery {
     name: string;
     description?: string;
     is_active?: boolean;
+    image?: string[];
   }): Promise<Collection> {
     const insertData: any = {
       ...collectionData,
+      image: JSON.stringify(collectionData.image),
       created_at: this.db.fn.now(),
       updated_at: this.db.fn.now()
     };
@@ -206,8 +208,20 @@ export class CollectionQuery {
   }
 
   // Update collection
-  async updateCollection(id: number, updates: { name?: string; description?: string; is_active?: boolean }): Promise<Collection> {
+  async updateCollection(id: number, updates: { 
+    name?: string; 
+    description?: string; 
+    image?: string[]; 
+    product_type_id?: number; 
+    is_active?: boolean 
+  }): Promise<Collection> {
     const payload: any = { ...updates, updated_at: this.db.fn.now() };
+    
+    // Handle image array serialization
+    if (updates.image !== undefined) {
+      payload.image = JSON.stringify(updates.image);
+    }
+    
     const [row] = await this.db<Collection>(DB.Collections)
       .where({ id, is_deleted: false })
       .update(payload)
@@ -252,5 +266,36 @@ export class CollectionQuery {
       .where({ collection_id: collectionId, product_id: productId, is_deleted: false } as any)
       .first();
     return !!row;
+  }
+
+  // Replace all products in a collection (complete overwrite)
+  async replaceCollectionProducts(collectionId: number, products: Array<{ product_id: number; position?: number }>): Promise<CollectionProduct[]> {
+    // Start a transaction to ensure data consistency
+    return await this.db.transaction(async (trx) => {
+      // First, soft delete all existing products in the collection
+      const deletion = { is_deleted: true, deleted_at: this.db.fn.now() };
+      await trx(DB.CollectionProducts)
+        .where({ collection_id: collectionId, is_deleted: false } as any)
+        .update(deletion);
+
+      // If no products provided, just return empty array
+      if (products.length === 0) {
+        return [];
+      }
+
+      // Then, add all new products
+      const rows = products.map((p) => ({
+        collection_id: collectionId,
+        product_id: p.product_id,
+        position: typeof p.position === "number" ? p.position : 0,
+        created_at: this.db.fn.now()
+      }));
+
+      const result = await trx<CollectionProduct>(DB.CollectionProducts)
+        .insert(rows)
+        .returning("*");
+      
+      return result as CollectionProduct[];
+    });
   }
 }

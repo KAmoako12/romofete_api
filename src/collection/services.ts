@@ -13,6 +13,8 @@ export class CollectionService {
   async createCollection(collectionData: {
     name: string;
     description?: string;
+    image?: string[];
+    product_type_id?: number;
     is_active?: boolean;
     products?: Array<{ product_id: number; position?: number }>;
   }) {
@@ -62,12 +64,39 @@ export class CollectionService {
   }
 
   // Update collection
-  async updateCollection(id: number, updates: { name?: string; description?: string; is_active?: boolean }) {
+  async updateCollection(id: number, updates: { 
+    name?: string; 
+    description?: string; 
+    image?: string[]; 
+    product_type_id?: number; 
+    is_active?: boolean;
+    products?: Array<{ product_id: number; position?: number }>;
+  }) {
     try {
       const exists = await this.query.collectionExists(id);
       if (!exists) throw new Error("Collection not found");
 
-      await this.query.updateCollection(id, updates);
+      const { products, ...collectionUpdates } = updates;
+
+      // Update collection properties
+      if (Object.keys(collectionUpdates).length > 0) {
+        await this.query.updateCollection(id, collectionUpdates);
+      }
+
+      // Handle products overwrite if provided
+      if (products !== undefined) {
+        // Validate all products exist first
+        for (const item of products) {
+          const product = await ProductQuery.getProductById(item.product_id);
+          if (!product) {
+            throw new Error(`Product with ID ${item.product_id} does not exist`);
+          }
+        }
+
+        // Remove all existing products from collection and add new ones
+        await this.query.replaceCollectionProducts(id, products);
+      }
+
       return await this.query.getCollectionById(id);
     } catch (error) {
       throw new Error(`Failed to update collection: ${(error as Error).message}`);

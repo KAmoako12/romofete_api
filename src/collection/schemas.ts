@@ -3,7 +3,7 @@ import Joi from "joi";
 export const createCollectionSchema = Joi.object({
   name: Joi.string().min(1).max(200).required(),
   description: Joi.string().max(2000).optional().allow(""),
-  image: Joi.string().max(500).optional().allow(""),
+  image: Joi.array().items(Joi.string().max(500)).optional().allow(null),
   product_type_id: Joi.number().integer().positive().optional(),
   is_active: Joi.boolean().optional().default(true),
   products: Joi.array()
@@ -20,9 +20,17 @@ export const createCollectionSchema = Joi.object({
 export const updateCollectionSchema = Joi.object({
   name: Joi.string().min(1).max(200).optional(),
   description: Joi.string().max(2000).optional().allow(""),
-  image: Joi.string().max(500).optional().allow(""),
+  image: Joi.array().items(Joi.string().max(500)).optional().allow(null),
   product_type_id: Joi.number().integer().positive().optional().allow(null),
-  is_active: Joi.boolean().optional()
+  is_active: Joi.boolean().optional(),
+  products: Joi.array()
+    .items(
+      Joi.object({
+        product_id: Joi.number().integer().positive().required(),
+        position: Joi.number().integer().min(0).optional().default(0)
+      })
+    )
+    .optional()
 }).min(1);
 
 export const addProductToCollectionSchema = Joi.object({
