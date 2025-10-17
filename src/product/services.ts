@@ -20,7 +20,7 @@ export interface ProductResponse {
 }
 
 export interface ProductListResponse {
-  products: ProductResponse[];
+  data: ProductResponse[];
   pagination: {
     page: number;
     limit: number;
@@ -57,7 +57,7 @@ export async function listProducts(filters: ProductFilters = {}, pagination: Pag
   const result = await Query.listProducts(filters, pagination);
   
   return {
-    products: result.products.map(formatProductResponse),
+    data: result.products.map(formatProductResponse),
     pagination: result.pagination,
     filters_applied: filters
   };

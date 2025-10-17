@@ -24,7 +24,7 @@ export async function getProductTypeById(id: number) {
 export async function listProductTypes(filters: any = {}, pagination: any = {}) {
   const result = await Query.listProductTypes(filters, pagination);
   return {
-    product_types: result.product_types.map(formatProductTypeResponse),
+    data: result.product_types.map(formatProductTypeResponse),
     pagination: result.pagination
   };
 }

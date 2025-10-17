@@ -47,7 +47,7 @@ export interface OrderItemResponse {
 }
 
 export interface OrderListResponse {
-  orders: OrderResponse[];
+  data: OrderResponse[];
   pagination: {
     page: number;
     limit: number;
@@ -278,7 +278,7 @@ export async function listOrders(filters: OrderFilters = {}, pagination: OrderPa
   const result = await OrderQuery.listOrders(filters, pagination);
   
   return {
-    orders: result.orders.map(formatOrderResponse),
+    data: result.orders.map(formatOrderResponse),
     pagination: result.pagination,
     filters_applied: filters
   };
