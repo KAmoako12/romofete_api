@@ -98,6 +98,8 @@ export namespace Query {
       .limit(limit)
       .offset(offset);
 
+    console.log(product_types);
+
     return {
       product_types,
       pagination: {

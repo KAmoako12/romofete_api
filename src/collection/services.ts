@@ -15,9 +15,9 @@ function formatCollectionResponse(collection: any) {
     formatted.products = collection.products.map((product: any) => ({
       ...product,
       // Parse product images from JSON string to array
-      product_images: product.product_images ? JSON.parse(product.product_images) : [],
+      product_images: product.product_images ? product.product_images : [],
       // Parse extra properties if present
-      product_extra_properties: product.product_extra_properties ? JSON.parse(product.product_extra_properties) : {}
+      product_extra_properties: product.product_extra_properties ? product.product_extra_properties : {}
     }));
   }
 
