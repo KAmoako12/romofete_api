@@ -31,6 +31,13 @@ export interface OrderResponse {
   items?: OrderItemResponse[];
   user_username?: string;
   user_email?: string;
+  paystack_response?: {
+    authorization_url: string;
+    access_code: string;
+    reference: string;
+  };
+  paystack_authorization_url?: string;
+  paystack_access_code?: string;
 }
 
 export interface OrderItemResponse {
@@ -277,8 +284,18 @@ export async function getOrderByReference(reference: string): Promise<OrderRespo
 export async function listOrders(filters: OrderFilters = {}, pagination: OrderPaginationOptions = {}): Promise<OrderListResponse> {
   const result = await OrderQuery.listOrders(filters, pagination);
   
+  // Get order items for each order
+  const ordersWithItems = await Promise.all(
+    result.orders.map(async (order) => {
+      const orderItems = await OrderQuery.getOrderItems(order.id);
+      const formattedOrder = formatOrderResponse(order);
+      formattedOrder.items = orderItems.map(formatOrderItemResponse);
+      return formattedOrder;
+    })
+  );
+  
   return {
-    data: result.orders.map(formatOrderResponse),
+    data: ordersWithItems,
     pagination: result.pagination,
     filters_applied: filters
   };
@@ -331,12 +348,34 @@ export async function getOrdersByUser(userId: number, limit: number = 10): Promi
 
 export async function getOrdersByStatus(status: string, limit: number = 50): Promise<OrderResponse[]> {
   const orders = await OrderQuery.getOrdersByStatus(status, limit);
-  return orders.map(formatOrderResponse);
+  
+  // Get order items for each order
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order) => {
+      const orderItems = await OrderQuery.getOrderItems(order.id);
+      const formattedOrder = formatOrderResponse(order);
+      formattedOrder.items = orderItems.map(formatOrderItemResponse);
+      return formattedOrder;
+    })
+  );
+  
+  return ordersWithItems;
 }
 
 export async function getOrdersByPaymentStatus(paymentStatus: string, limit: number = 50): Promise<OrderResponse[]> {
   const orders = await OrderQuery.getOrdersByPaymentStatus(paymentStatus, limit);
-  return orders.map(formatOrderResponse);
+  
+  // Get order items for each order
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order) => {
+      const orderItems = await OrderQuery.getOrderItems(order.id);
+      const formattedOrder = formatOrderResponse(order);
+      formattedOrder.items = orderItems.map(formatOrderItemResponse);
+      return formattedOrder;
+    })
+  );
+  
+  return ordersWithItems;
 }
 
 export async function getOrderStats() {
@@ -373,6 +412,7 @@ async function initializePaystackCharge(order: any, customerEmail: string): Prom
   const paystackData = {
     email: customerEmail,
     amount: Math.round(parseFloat(order.total_price) * 100), // Paystack expects amount in kobo
+    currency: 'GHS',
     reference: order.reference,
     callback_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/callback`,
     metadata: {
