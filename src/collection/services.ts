@@ -2,6 +2,28 @@ import { Knex } from "knex";
 import { CollectionQuery } from "./query";
 import { Query as ProductQuery } from "../product/query";
 
+// Helper function to format collection for API response
+function formatCollectionResponse(collection: any) {
+  const formatted = {
+    ...collection,
+    // Parse images from JSON string to array
+    image: collection.image ? JSON.parse(collection.image) : [],
+  };
+
+  // If collection has products, format them too
+  if (collection.products && Array.isArray(collection.products)) {
+    formatted.products = collection.products.map((product: any) => ({
+      ...product,
+      // Parse product images from JSON string to array
+      product_images: product.product_images ? JSON.parse(product.product_images) : [],
+      // Parse extra properties if present
+      product_extra_properties: product.product_extra_properties ? JSON.parse(product.product_extra_properties) : {}
+    }));
+  }
+
+  return formatted;
+}
+
 export class CollectionService {
   private query: CollectionQuery;
 
@@ -35,7 +57,8 @@ export class CollectionService {
         await this.query.addProductsToCollection(collection.id, products);
       }
 
-      return await this.query.getCollectionById(collection.id);
+      const result = await this.query.getCollectionById(collection.id);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to create collection: ${(error as Error).message}`);
     }
@@ -47,7 +70,7 @@ export class CollectionService {
     if (!collection) {
       throw new Error("Collection not found");
     }
-    return collection;
+    return formatCollectionResponse(collection);
   }
 
   // List collections
@@ -60,7 +83,14 @@ export class CollectionService {
     sort_by?: string;
     sort_order?: "asc" | "desc";
   }) {
-    return this.query.getCollections(filters);
+    const result = await this.query.getCollections(filters);
+    
+    // Format all collections in the data array
+    if (result.data && Array.isArray(result.data)) {
+      result.data = result.data.map(formatCollectionResponse);
+    }
+    
+    return result;
   }
 
   // Update collection
@@ -97,7 +127,8 @@ export class CollectionService {
         await this.query.replaceCollectionProducts(id, products);
       }
 
-      return await this.query.getCollectionById(id);
+      const result = await this.query.getCollectionById(id);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to update collection: ${(error as Error).message}`);
     }
@@ -129,7 +160,8 @@ export class CollectionService {
       if (already) throw new Error("Product is already in this collection");
 
       await this.query.addProductsToCollection(collectionId, [productData]);
-      return await this.query.getCollectionById(collectionId);
+      const result = await this.query.getCollectionById(collectionId);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to add product to collection: ${(error as Error).message}`);
     }
@@ -149,7 +181,8 @@ export class CollectionService {
       }
 
       await this.query.addProductsToCollection(collectionId, products);
-      return await this.query.getCollectionById(collectionId);
+      const result = await this.query.getCollectionById(collectionId);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to add products to collection: ${(error as Error).message}`);
     }
@@ -165,7 +198,8 @@ export class CollectionService {
       if (!inCollection) throw new Error("Product is not in this collection");
 
       await this.query.removeProductFromCollection(collectionId, productId);
-      return await this.query.getCollectionById(collectionId);
+      const result = await this.query.getCollectionById(collectionId);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to remove product from collection: ${(error as Error).message}`);
     }
@@ -181,7 +215,8 @@ export class CollectionService {
       if (!inCollection) throw new Error("Product is not in this collection");
 
       await this.query.updateCollectionProductPosition(collectionId, productId, position);
-      return await this.query.getCollectionById(collectionId);
+      const result = await this.query.getCollectionById(collectionId);
+      return result ? formatCollectionResponse(result) : result;
     } catch (error) {
       throw new Error(`Failed to update product position: ${(error as Error).message}`);
     }

@@ -307,7 +307,7 @@ router.get("/:id", async (req: Request, res: Response) => {
  * /collections/{id}:
  *   put:
  *     summary: Update collection
- *     description: Update collection properties. At least one field must be provided.
+ *     description: Update collection properties including products. At least one field must be provided.
  *     tags:
  *       - Collections
  *     security:
@@ -338,8 +338,7 @@ router.get("/:id", async (req: Request, res: Response) => {
  *                 description: Collection description (can be empty string)
  *               image:
  *                 type: string
- *                 maxLength: 500
- *                 description: Collection image URL (can be empty string)
+ *                 description: Collection image URL
  *               product_type_id:
  *                 type: integer
  *                 minimum: 1
@@ -348,6 +347,22 @@ router.get("/:id", async (req: Request, res: Response) => {
  *               is_active:
  *                 type: boolean
  *                 description: Whether the collection is active
+ *               products:
+ *                 type: array
+ *                 description: Products to replace existing products in collection (optional)
+ *                 items:
+ *                   type: object
+ *                   required: [product_id]
+ *                   properties:
+ *                     product_id:
+ *                       type: integer
+ *                       minimum: 1
+ *                       description: Product ID to add to collection
+ *                     position:
+ *                       type: integer
+ *                       minimum: 0
+ *                       default: 0
+ *                       description: Position of product in collection
  *     responses:
  *       200:
  *         description: Collection updated successfully

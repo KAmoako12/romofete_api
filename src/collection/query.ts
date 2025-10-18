@@ -18,7 +18,7 @@ export class CollectionQuery {
   }): Promise<Collection> {
     const insertData: any = {
       ...collectionData,
-      image: JSON.stringify(collectionData.image),
+      image: collectionData.image ? JSON.stringify(collectionData.image) : null,
       created_at: this.db.fn.now(),
       updated_at: this.db.fn.now()
     };
