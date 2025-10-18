@@ -94,14 +94,32 @@ export async function deleteProduct(id: number) {
   return formatProductResponse(deletedProduct);
 }
 
-export async function getFeaturedProducts(limit: number = 10) {
-  const products = await Query.getFeaturedProducts(limit);
-  return products.map(formatProductResponse);
+export async function getFeaturedProducts(limit: number = 10, filters: Omit<ProductFilters, 'search'> = {}) {
+  const products = await Query.getFeaturedProducts(limit, filters);
+  return {
+    data: products.map(formatProductResponse),
+    pagination: {
+      page: 1,
+      limit: limit,
+      total: products.length,
+      pages: 1
+    },
+    filters_applied: filters
+  };
 }
 
-export async function getProductsByType(productTypeId: number, limit: number = 20) {
-  const products = await Query.getProductsByType(productTypeId, limit);
-  return products.map(formatProductResponse);
+export async function getProductsByType(productTypeId: number, limit: number = 20, filters: Omit<ProductFilters, 'search' | 'product_type_id'> = {}) {
+  const products = await Query.getProductsByType(productTypeId, limit, filters);
+  return {
+    data: products.map(formatProductResponse),
+    pagination: {
+      page: 1,
+      limit: limit,
+      total: products.length,
+      pages: 1
+    },
+    filters_applied: { ...filters, product_type_id: productTypeId }
+  };
 }
 
 export async function updateProductStock(id: number, quantity: number, operation: 'increase' | 'decrease') {
@@ -113,9 +131,18 @@ export async function checkProductAvailability(id: number, requestedQuantity: nu
   return await Query.checkProductAvailability(id, requestedQuantity);
 }
 
-export async function getLowStockProducts(threshold: number = 10) {
-  const products = await Query.getLowStockProducts(threshold);
-  return products.map(formatProductResponse);
+export async function getLowStockProducts(threshold: number = 10, filters: Omit<ProductFilters, 'search' | 'in_stock'> = {}) {
+  const products = await Query.getLowStockProducts(threshold, filters);
+  return {
+    data: products.map(formatProductResponse),
+    pagination: {
+      page: 1,
+      limit: products.length,
+      total: products.length,
+      pages: 1
+    },
+    filters_applied: filters
+  };
 }
 
 export async function bulkUpdateStock(updates: Array<{product_id: number, quantity: number, operation: 'increase' | 'decrease'}>) {
@@ -163,24 +190,24 @@ export async function getProductStats() {
   const lowStockProducts = await getLowStockProducts();
   
   return {
-    low_stock_count: lowStockProducts.length,
+    low_stock_count: lowStockProducts.data.length,
     low_stock_threshold: 10,
     // Additional stats would be calculated here
   };
 }
 
-export async function getSimilarProducts(productId: number, limit: number = 10) {
+export async function getSimilarProducts(productId: number, limit: number = 10, filters: Omit<ProductFilters, 'search'> = {}) {
   const bundleQuery = new BundleQuery(Database.getDBInstance());
   
   // First, try to get products from the same bundles
   const bundleSimilarProducts = await bundleQuery.getProductsInSameBundles(productId, Math.ceil(limit * 0.7));
   
-  // If we don't have enough products from bundles, get more using the original algorithm
+  // If we don't have enough products from bundles, get more using the original algorithm with filters
   const remainingLimit = limit - bundleSimilarProducts.length;
   let additionalProducts: any[] = [];
   
   if (remainingLimit > 0) {
-    const originalSimilarProducts = await Query.getSimilarProducts(productId, remainingLimit);
+    const originalSimilarProducts = await Query.getSimilarProducts(productId, remainingLimit, filters);
     
     // Filter out products that are already in the bundle results
     const bundleProductIds = new Set(bundleSimilarProducts.map((p: any) => p.id));
@@ -189,14 +216,36 @@ export async function getSimilarProducts(productId: number, limit: number = 10) 
   
   // Combine and format the results
   const allSimilarProducts = [...bundleSimilarProducts, ...additionalProducts].slice(0, limit);
-  return allSimilarProducts.map(formatProductResponse);
+  const formattedProducts = allSimilarProducts.map(formatProductResponse);
+  
+  return {
+    data: formattedProducts,
+    pagination: {
+      page: 1,
+      limit: limit,
+      total: formattedProducts.length,
+      pages: 1
+    },
+    filters_applied: filters
+  };
 }
 
 // New function specifically for getting products from same bundles
-export async function getProductsFromSameBundles(productId: number, limit: number = 10) {
+export async function getProductsFromSameBundles(productId: number, limit: number = 10, filters: Omit<ProductFilters, 'search'> = {}) {
   const bundleQuery = new BundleQuery(Database.getDBInstance());
   const products = await bundleQuery.getProductsInSameBundles(productId, limit);
-  return products.map(formatProductResponse);
+  const formattedProducts = products.map(formatProductResponse);
+  
+  return {
+    data: formattedProducts,
+    pagination: {
+      page: 1,
+      limit: limit,
+      total: formattedProducts.length,
+      pages: 1
+    },
+    filters_applied: filters
+  };
 }
 
 // Helper function to determine stock status

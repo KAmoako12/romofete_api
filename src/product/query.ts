@@ -138,11 +138,33 @@ export namespace Query {
         };
     }
 
-    export async function getFeaturedProducts(limit: number = 10) {
-        return knex(DB.Products)
+    export async function getFeaturedProducts(limit: number = 10, filters: Omit<ProductFilters, 'search'> = {}) {
+        const { minPrice, maxPrice, occasion } = filters;
+        
+        let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .where(`${DB.Products}.is_deleted`, false)
-            .where(`${DB.Products}.stock`, '>', 0)
+            .where(`${DB.Products}.stock`, '>', 0);
+
+        // Apply price filters
+        if (minPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '>=', minPrice);
+        }
+
+        if (maxPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '<=', maxPrice);
+        }
+
+        // Apply occasion filter
+        if (occasion) {
+            query = query.where(function() {
+                this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
+                    .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
+                    .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
+            });
+        }
+
+        return query
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`
@@ -151,13 +173,42 @@ export namespace Query {
             .limit(limit);
     }
 
-    export async function getProductsByType(productTypeId: number, limit: number = 20) {
-        return knex(DB.Products)
+    export async function getProductsByType(productTypeId: number, limit: number = 20, filters: Omit<ProductFilters, 'search' | 'product_type_id'> = {}) {
+        const { minPrice, maxPrice, occasion, in_stock } = filters;
+        
+        let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .where({
                 [`${DB.Products}.product_type_id`]: productTypeId,
                 [`${DB.Products}.is_deleted`]: false
-            })
+            });
+
+        // Apply stock filter
+        if (in_stock === true) {
+            query = query.where(`${DB.Products}.stock`, '>', 0);
+        } else if (in_stock === false) {
+            query = query.where(`${DB.Products}.stock`, '<=', 0);
+        }
+
+        // Apply price filters
+        if (minPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '>=', minPrice);
+        }
+
+        if (maxPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '<=', maxPrice);
+        }
+
+        // Apply occasion filter
+        if (occasion) {
+            query = query.where(function() {
+                this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
+                    .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
+                    .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
+            });
+        }
+
+        return query
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`
@@ -208,12 +259,39 @@ export namespace Query {
         return { available: true, available_stock: product.stock };
     }
 
-    export async function getLowStockProducts(threshold: number = 10) {
-        return knex(DB.Products)
+    export async function getLowStockProducts(threshold: number = 10, filters: Omit<ProductFilters, 'search' | 'in_stock'> = {}) {
+        const { minPrice, maxPrice, occasion, product_type_id } = filters;
+        
+        let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .where(`${DB.Products}.is_deleted`, false)
             .where(`${DB.Products}.stock`, '<=', threshold)
-            .where(`${DB.Products}.stock`, '>', 0)
+            .where(`${DB.Products}.stock`, '>', 0);
+
+        // Apply product type filter
+        if (product_type_id) {
+            query = query.where(`${DB.Products}.product_type_id`, product_type_id);
+        }
+
+        // Apply price filters
+        if (minPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '>=', minPrice);
+        }
+
+        if (maxPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '<=', maxPrice);
+        }
+
+        // Apply occasion filter
+        if (occasion) {
+            query = query.where(function() {
+                this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
+                    .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
+                    .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
+            });
+        }
+
+        return query
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`
@@ -221,29 +299,40 @@ export namespace Query {
             .orderBy(`${DB.Products}.stock`, 'asc');
     }
 
-    export async function getSimilarProducts(productId: number, limit: number = 10) {
+    export async function getSimilarProducts(productId: number, limit: number = 10, filters: Omit<ProductFilters, 'search'> = {}) {
         // First get the target product to understand its characteristics
         const targetProduct = await getProductById(productId);
         if (!targetProduct) {
             throw new Error('Product not found');
         }
 
+        const { minPrice, maxPrice, occasion, product_type_id, in_stock } = filters;
+
         // Find similar products based on:
         // 1. Same product type (highest priority)
         // 2. Similar price range (within 20% of the target product's price)
         // 3. Exclude the target product itself
-        // 4. Only include in-stock products
+        // 4. Apply additional filters
         
         const targetPrice = parseFloat(targetProduct.price);
         const priceRangeMin = targetPrice * 0.8; // 20% below
         const priceRangeMax = targetPrice * 1.2; // 20% above
 
-        return knex(DB.Products)
+        let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .where(`${DB.Products}.is_deleted`, false)
-            .where(`${DB.Products}.stock`, '>', 0)
-            .where(`${DB.Products}.id`, '!=', productId)
-            .where(function() {
+            .where(`${DB.Products}.id`, '!=', productId);
+
+        // Apply stock filter (default to in-stock unless specified otherwise)
+        if (in_stock !== false) {
+            query = query.where(`${DB.Products}.stock`, '>', 0);
+        }
+
+        // Apply product type filter if specified, otherwise use similarity logic
+        if (product_type_id) {
+            query = query.where(`${DB.Products}.product_type_id`, product_type_id);
+        } else {
+            query = query.where(function() {
                 // Priority 1: Same product type
                 this.where(`${DB.Products}.product_type_id`, targetProduct.product_type_id)
                     // Priority 2: Similar price range
@@ -251,7 +340,28 @@ export namespace Query {
                         this.where(`${DB.Products}.price`, '>=', priceRangeMin)
                             .where(`${DB.Products}.price`, '<=', priceRangeMax);
                     });
-            })
+            });
+        }
+
+        // Apply price filters (override similarity price range if specified)
+        if (minPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '>=', minPrice);
+        }
+
+        if (maxPrice !== undefined) {
+            query = query.where(`${DB.Products}.price`, '<=', maxPrice);
+        }
+
+        // Apply occasion filter
+        if (occasion) {
+            query = query.where(function() {
+                this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
+                    .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
+                    .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
+            });
+        }
+
+        return query
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`,

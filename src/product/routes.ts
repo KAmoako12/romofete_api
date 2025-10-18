@@ -336,15 +336,48 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) 
  *           maximum: 50
  *           default: 10
  *         description: Number of featured products to return
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Filter products by occasion (1-100 characters, searches product types and product metadata)
  *     responses:
  *       200:
  *         description: Featured products retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       500:
  *         description: Internal server error
  */
@@ -352,7 +385,20 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) 
 router.get("/featured", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
-    const products = await getFeaturedProducts(Math.min(limit, 50));
+    
+    // Extract filter parameters
+    const filters = {
+      minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+      maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+      occasion: req.query.occasion as string,
+    };
+
+    // Remove undefined values
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    );
+
+    const products = await getFeaturedProducts(Math.min(limit, 50), cleanFilters);
     res.json(products);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -376,15 +422,54 @@ router.get("/featured", async (req, res) => {
  *           minimum: 1
  *           default: 10
  *         description: Stock threshold for low stock alert
+ *       - in: query
+ *         name: product_type_id
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Filter by product type ID (must be positive integer)
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Filter products by occasion (1-100 characters, searches product types and product metadata)
  *     responses:
  *       200:
  *         description: Low stock products retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       401:
  *         description: Unauthorized
  *       403:
@@ -396,7 +481,21 @@ router.get("/featured", async (req, res) => {
 router.get("/low-stock", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) => {
   try {
     const threshold = parseInt(req.query.threshold as string) || 10;
-    const products = await getLowStockProducts(threshold);
+    
+    // Extract filter parameters
+    const filters = {
+      product_type_id: req.query.product_type_id ? parseInt(req.query.product_type_id as string) : undefined,
+      minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+      maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+      occasion: req.query.occasion as string,
+    };
+
+    // Remove undefined values
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    );
+
+    const products = await getLowStockProducts(threshold, cleanFilters);
     res.json(products);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -524,15 +623,53 @@ router.get("/search", async (req, res) => {
  *           maximum: 100
  *           default: 20
  *         description: Number of products to return
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: in_stock
+ *         schema:
+ *           type: boolean
+ *         description: Filter by stock availability
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Filter products by occasion (1-100 characters, searches product types and product metadata)
  *     responses:
  *       200:
  *         description: Products retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       400:
  *         description: Invalid product type ID
  *       500:
@@ -547,7 +684,21 @@ router.get("/type/:typeId", async (req, res) => {
     }
 
     const limit = parseInt(req.query.limit as string) || 20;
-    const products = await getProductsByType(typeId, Math.min(limit, 100));
+    
+    // Extract filter parameters
+    const filters = {
+      minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+      maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+      in_stock: req.query.in_stock !== undefined ? req.query.in_stock === 'true' : undefined,
+      occasion: req.query.occasion as string,
+    };
+
+    // Remove undefined values
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    );
+
+    const products = await getProductsByType(typeId, Math.min(limit, 100), cleanFilters);
     res.json(products);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -577,15 +728,59 @@ router.get("/type/:typeId", async (req, res) => {
  *           maximum: 50
  *           default: 10
  *         description: Number of similar products to return
+ *       - in: query
+ *         name: product_type_id
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Filter by specific product type ID (overrides similarity algorithm)
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter (minimum 0, 2 decimal precision)
+ *       - in: query
+ *         name: in_stock
+ *         schema:
+ *           type: boolean
+ *         description: Filter by stock availability (defaults to true)
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Filter products by occasion (1-100 characters, searches product types and product metadata)
  *     responses:
  *       200:
  *         description: Similar products retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       400:
  *         description: Invalid product ID
  *       404:
@@ -602,7 +797,22 @@ router.get("/:id/similar", async (req, res) => {
     }
     
     const limit = parseInt(req.query.limit as string) || 10;
-    const products = await getSimilarProducts(id, Math.min(limit, 50));
+    
+    // Extract filter parameters
+    const filters = {
+      product_type_id: req.query.product_type_id ? parseInt(req.query.product_type_id as string) : undefined,
+      minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+      maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+      in_stock: req.query.in_stock !== undefined ? req.query.in_stock === 'true' : undefined,
+      occasion: req.query.occasion as string,
+    };
+
+    // Remove undefined values
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    );
+
+    const products = await getSimilarProducts(id, Math.min(limit, 50), cleanFilters);
     res.json(products);
   } catch (err: any) {
     if (err.message === "Product not found") {
