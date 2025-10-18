@@ -119,30 +119,18 @@ export class CollectionQuery {
     if (occasion) {
       const self = this;
       query = query.where(function () {
-        // Search collections that have a product_type_id matching the occasion
+        // Search collections that contain products with occasion metadata matching the search term
         this.whereExists(
-          self.db.select('*')
-            .from(DB.ProductTypes)
-            .whereRaw(`${DB.ProductTypes}.id = ${DB.Collections}.product_type_id`)
-            .andWhere(function () {
-              this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
-                .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`]);
-            })
-        )
-        // OR search collections that contain products with product_types OR product metadata matching the occasion
-        .orWhereExists(
           self.db.select('*')
             .from(DB.CollectionProducts)
             .join(DB.Products, `${DB.CollectionProducts}.product_id`, `${DB.Products}.id`)
-            .join(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .whereRaw(`${DB.CollectionProducts}.collection_id = ${DB.Collections}.id`)
             .andWhere(`${DB.CollectionProducts}.is_deleted`, false)
             .andWhere(`${DB.Products}.is_deleted`, false)
             .andWhere(function () {
-              // Search in product type name and allowed_types
-              this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
-                .orWhereRaw(`CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ?`, [`%${occasion}%`])
-                // Search for specific "occasion" key in product metadata
+              // Check if occasion exists in the JSON array or as a string value
+              this.whereRaw(`${DB.Products}.extra_properties -> 'occasion' ? ?`, [occasion])
+                // Also handle case where occasion might be stored as a string instead of array
                 .orWhereRaw(`${DB.Products}.extra_properties ->> 'occasion' ILIKE ?`, [`%${occasion}%`]);
             })
         );
