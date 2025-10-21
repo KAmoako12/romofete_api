@@ -11,6 +11,7 @@ import orderRoutes from './order/routes';
 import bundleRoutes from './bundle/routes';
 import collectionRoutes from './collection/routes';
 import webhookRoutes from './webhook/routes';
+import pricingConfigRoutes from './pricing-config/routes';
 import { Database } from './_services/databaseService';
 
 const createApp = () => {
@@ -55,7 +56,7 @@ const createApp = () => {
       }
     },
     apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts', './src/delivery-option/routes.ts', 
-      './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts', './src/product-type/routes.ts', './src/collection/routes.ts', './src/webhook/routes.ts']
+      './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts', './src/product-type/routes.ts', './src/collection/routes.ts', './src/webhook/routes.ts', './src/pricing-config/routes.ts']
   };
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -126,6 +127,7 @@ const createApp = () => {
   app.use('/bundles', bundleRoutes);
   app.use('/collections', collectionRoutes);
   app.use('/webhooks', webhookRoutes);
+  app.use('/pricing-config', pricingConfigRoutes);
 
   return app;
 };

@@ -275,3 +275,33 @@ export interface CreateCollectionProductRequest {
   product_id: number;
   position?: number;
 }
+
+export interface PricingConfig {
+  id: number;
+  min_price: string; // Decimal as string for JSON serialization
+  max_price: string | null; // Decimal as string for JSON serialization
+  product_type_id: number | null;
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreatePricingConfigRequest {
+  min_price?: number;
+  max_price?: number;
+  product_type_id?: number;
+}
+
+export interface UpdatePricingConfigRequest {
+  min_price?: number;
+  max_price?: number;
+  product_type_id?: number;
+}
+
+export interface PricingConfigResponse {
+  id: number;
+  min_price: string;
+  max_price: string | null;
+  product_type_id: number | null;
+  created_at: string;
+}

@@ -12,5 +12,6 @@ export const DB = {
   Bundles: "bundles",
   BundleProducts: "bundle_products",
   Collections: "collections",
-  CollectionProducts: "collection_products"
+  CollectionProducts: "collection_products",
+  PricingConfig: "pricing_config"
 };
