@@ -9,7 +9,7 @@ export const createOrderSchema = Joi.object({
     })
   ).min(1).required(),
   delivery_option_id: Joi.number().integer().positive().optional(),
-  delivery_address: Joi.string().max(500).optional(),
+  delivery_address: Joi.string().max(500).optional().allow(null),
   customer_email: Joi.string().email().max(120).optional(),
   customer_phone: Joi.string().max(20).optional(),
   customer_name: Joi.string().max(160).optional(),
@@ -27,9 +27,6 @@ export const createOrderSchema = Joi.object({
     }
     if (!value.customer_phone) {
       return helpers.error('any.required', { label: 'customer_phone' });
-    }
-    if (!value.delivery_address) {
-      return helpers.error('any.required', { label: 'delivery_address' });
     }
   }
   return value;

@@ -22,9 +22,21 @@ export namespace Query {
   }
 
   export async function deleteProductType(id: number) {
+    const productType = await getProductTypeById(id);
+    if (!productType) {
+      throw new Error('Product type not found');
+    }
+    
+    // Generate random string to append to unique fields
+    const randomSuffix = `_deleted_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
     return knex(DB.ProductTypes)
       .where({ id, is_deleted: false })
-      .update({ is_deleted: true, deleted_at: new Date() })
+      .update({ 
+        is_deleted: true, 
+        deleted_at: new Date(),
+        name: (productType as any).name + randomSuffix
+      })
       .returning("*");
   }
 

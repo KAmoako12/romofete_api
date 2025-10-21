@@ -58,7 +58,19 @@ export namespace Query {
     }
 
     export async function deleteOrder(id: number) {
-        return knex(DB.Orders).where({ id, is_deleted: false }).update({ is_deleted: true, deleted_at: new Date() }).returning('*');
+        const order = await getOrderById(id);
+        if (!order) {
+            throw new Error('Order not found');
+        }
+        
+        // Generate random string to append to unique fields
+        const randomSuffix = `_deleted_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
+        return knex(DB.Orders).where({ id, is_deleted: false }).update({ 
+            is_deleted: true, 
+            deleted_at: new Date(),
+            reference: (order as any).reference + randomSuffix
+        }).returning('*');
     }
 
     export async function listOrders(filters: OrderFilters = {}, pagination: OrderPaginationOptions = {}) {

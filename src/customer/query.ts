@@ -45,9 +45,18 @@ export namespace Query {
     }
 
     export async function deleteCustomer(id: number) {
+        const customer = await getCustomerById(id);
+        if (!customer) {
+            throw new Error('Customer not found');
+        }
+        
+        // Generate random string to append to unique fields
+        const randomSuffix = `_deleted_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
         return knex(DB.Customers).where({ id, is_deleted: false }).update({ 
             is_deleted: true, 
-            deleted_at: new Date() 
+            deleted_at: new Date(),
+            email: (customer as any).email + randomSuffix
         }).returning('*');
     }
 

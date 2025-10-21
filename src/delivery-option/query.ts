@@ -23,7 +23,19 @@ export namespace Query {
     }
 
     export async function deleteDeliveryOption(id: number) {
-        return knex(DB.DeliveryOptions).where({ id, is_deleted: false }).update({ is_deleted: true, deleted_at: new Date() }).returning('*');
+        const deliveryOption = await getDeliveryOptionById(id);
+        if (!deliveryOption) {
+            throw new Error('Delivery option not found');
+        }
+        
+        // Generate random string to append to unique fields
+        const randomSuffix = `_deleted_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
+        return knex(DB.DeliveryOptions).where({ id, is_deleted: false }).update({ 
+            is_deleted: true, 
+            deleted_at: new Date(),
+            name: (deliveryOption as any).name + randomSuffix
+        }).returning('*');
     }
 
     export async function listDeliveryOptions() {

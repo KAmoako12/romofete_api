@@ -23,7 +23,20 @@ export namespace Query {
     }
 
     export async function deleteUser(id: number) {
-        return knex(DB.Users).where({ id, is_deleted: false }).update({ is_deleted: true, deleted_at: new Date() }).returning('*');
+        const user = await getUserById(id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        
+        // Generate random string to append to unique fields
+        const randomSuffix = `_deleted_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
+        return knex(DB.Users).where({ id, is_deleted: false }).update({ 
+            is_deleted: true, 
+            deleted_at: new Date(),
+            username: (user as any).username + randomSuffix,
+            email: (user as any).email + randomSuffix
+        }).returning('*');
     }
 
     export async function listUsers() {
