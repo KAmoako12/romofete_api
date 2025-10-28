@@ -2,6 +2,7 @@
 import bcrypt from "bcrypt";
 import { Query } from "./query";
 import { generateToken, AuthTokenPayload } from "../_services/authService";
+import { SmsService } from "../_services/smsService";
 
 const SALT_ROUNDS = 10;
 
@@ -10,19 +11,38 @@ export async function addUser({
   email,
   password,
   role,
+  phone,
 }: {
   username: string;
   email: string;
   password: string;
   role: "superAdmin" | "admin";
+  phone?: string;
 }) {
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-  const [user] = await Query.createUser({
+  const [userRaw] = await Query.createUser({
     username,
     email,
     password: hashedPassword,
     role,
+    phone,
   });
+
+  // Type assertion: we know this is a User
+  const user = userRaw as import("../_services/modelTypes").User;
+
+  // Send SMS on successful registration if phone is available
+  if (user && user.phone) {
+    const senderId = process.env.ARKESL_SMS_SENDER_ID || "ROMOFETE";
+    const smsMessage = "Registration successful! Welcome to Romofete.";
+    try {
+      await SmsService.sendSms(user.phone, smsMessage, senderId);
+      console.log(`Registration SMS sent to ${user.phone}`);
+    } catch (smsError) {
+      console.error("Failed to send registration SMS:", smsError);
+    }
+  }
+
   // Remove password before returning
   //@ts-ignore
   if (user && user.password) {

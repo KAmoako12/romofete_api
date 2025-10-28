@@ -1,6 +1,7 @@
 // This file contains the business logic for handling webhook events
 
 import { Query as OrderQuery } from "../order/query";
+import { SmsService } from "../_services/smsService";
 
 // Interface for Paystack webhook event data
 export interface PaystackWebhookData {
@@ -130,6 +131,18 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
       await OrderQuery.updateOrder(order.id, {
         status: 'processing'
       });
+    }
+
+    // Send SMS to customer on payment success
+    if (order.customer_phone) {
+      const senderId = process.env.ARKESL_SMS_SENDER_ID || "ROMOFETE";
+      const smsMessage = `Your payment for order ${reference} was successful. Thank you for your purchase!`;
+      try {
+        await SmsService.sendSms(order.customer_phone, smsMessage, senderId);
+        console.log(`Success SMS sent to ${order.customer_phone}`);
+      } catch (smsError) {
+        console.error("Failed to send payment success SMS:", smsError);
+      }
     }
 
     console.log(`Payment completed for order ${reference}`);

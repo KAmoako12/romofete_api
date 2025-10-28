@@ -1,4 +1,23 @@
-// TypeScript interfaces for all database models
+/**
+ * TypeScript interfaces for all database models
+ */
+
+export interface Customer {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  country?: string;
+  email: string;
+  password?: string;
+  created_at?: Date;
+  deleted_at?: Date | null;
+  is_deleted?: boolean;
+}
 
 export interface User {
   id: number;
@@ -6,6 +25,7 @@ export interface User {
   email: string;
   password: string;
   role: string;
+  phone?: string;
   is_active: boolean;
   created_at: Date;
   deleted_at: Date | null;

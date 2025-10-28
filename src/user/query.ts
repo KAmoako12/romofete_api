@@ -14,7 +14,7 @@ export namespace Query {
         return knex(DB.Users).where({ username, is_deleted: false }).first();
     }
 
-    export async function createUser(user: { username: string; email: string; password: string; role: string; }) {
+    export async function createUser(user: { username: string; email: string; password: string; role: string; phone?: string; }) {
         return knex(DB.Users).insert(user).returning('*');
     }
 
