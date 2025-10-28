@@ -1,6 +1,7 @@
 // src/_services/_dbTables.ts
 
 export const DB = {
+  HomepageSettings: "homepage_settings",
   Users: "users",
   Customers: "customers",
   ProductTypes: "product_types",

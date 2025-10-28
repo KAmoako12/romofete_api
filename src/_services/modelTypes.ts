@@ -305,3 +305,39 @@ export interface PricingConfigResponse {
   product_type_id: number | null;
   created_at: string;
 }
+
+// Homepage Settings Types
+
+export interface HomepageSettings {
+  id: number;
+  section_title: string;
+  section_position: number;
+  is_active: boolean;
+  section_images: string[];
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateHomepageSettingsRequest {
+  section_title: string;
+  section_position: number;
+  is_active?: boolean;
+  section_images?: string[];
+}
+
+export interface UpdateHomepageSettingsRequest {
+  section_title?: string;
+  section_position?: number;
+  is_active?: boolean;
+  section_images?: string[];
+}
+
+export interface HomepageSettingsResponse {
+  id: number;
+  section_title: string;
+  section_position: number;
+  is_active: boolean;
+  section_images: string[];
+  created_at: string;
+}
