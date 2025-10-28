@@ -5,6 +5,7 @@ export const createHomepageSettingsSchema = Joi.object({
   section_position: Joi.number().integer().min(0).required(),
   is_active: Joi.boolean().optional(),
   section_images: Joi.array().items(Joi.string().uri()).optional(),
+  product_ids: Joi.array().items(Joi.number().integer()).optional(),
 });
 
 export const updateHomepageSettingsSchema = Joi.object({
@@ -12,4 +13,5 @@ export const updateHomepageSettingsSchema = Joi.object({
   section_position: Joi.number().integer().min(0).optional(),
   is_active: Joi.boolean().optional(),
   section_images: Joi.array().items(Joi.string().uri()).optional(),
+  product_ids: Joi.array().items(Joi.number().integer()).optional(),
 }).min(1); // At least one field must be provided

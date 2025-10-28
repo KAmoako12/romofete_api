@@ -54,6 +54,22 @@ describe("Homepage Settings Endpoints E2E", () => {
     section_images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
   };
 
+  // Helper to create a product and return its id
+  async function createTestProduct(name = "Test Product", price = "10.00") {
+    const [id] = await testDb("products").insert({
+      name,
+      description: "desc",
+      price,
+      stock: 10,
+      product_type_id: 1,
+      images: JSON.stringify([]),
+      extra_properties: JSON.stringify({}),
+      created_at: new Date(),
+      is_deleted: false
+    }).returning("id");
+    return typeof id === "object" && id.id ? id.id : id;
+  }
+
   it("should create a new homepage setting", async () => {
     const res = await request(app)
       .post("/homepage-settings")
@@ -67,6 +83,42 @@ describe("Homepage Settings Endpoints E2E", () => {
     expect(res.body.is_active).toBe(true);
     expect(Array.isArray(res.body.section_images)).toBe(true);
     createdId = res.body.id;
+  });
+
+  it("should create a homepage setting with product_ids and return products in GET", async () => {
+    // Create two products
+    const productId1 = await createTestProduct("Product A", "12.00");
+    const productId2 = await createTestProduct("Product B", "15.00");
+
+    // Create homepage setting with product_ids
+    const createRes = await request(app)
+      .post("/homepage-settings")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ ...testData, product_ids: [productId1, productId2] })
+      .expect(201);
+
+    const id = createRes.body.id;
+
+    // GET by id
+    const getRes = await request(app)
+      .get(`/homepage-settings/${id}`)
+      .expect(200);
+
+    expect(getRes.body).toHaveProperty("products");
+    expect(Array.isArray(getRes.body.products)).toBe(true);
+    expect(getRes.body.products.length).toBe(2);
+    expect(getRes.body.products[0]).toHaveProperty("id", productId1);
+    expect(getRes.body.products[1]).toHaveProperty("id", productId2);
+
+    // GET all
+    const listRes = await request(app)
+      .get("/homepage-settings")
+      .expect(200);
+
+    const found = listRes.body.data.find((h: any) => h.id === id);
+    expect(found).toBeDefined();
+    expect(Array.isArray(found.products)).toBe(true);
+    expect(found.products.length).toBe(2);
   });
 
   it("should get the created homepage setting by id", async () => {

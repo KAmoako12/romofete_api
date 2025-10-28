@@ -334,6 +334,7 @@ export interface HomepageSettings {
   section_position: number;
   is_active: boolean;
   section_images: string[];
+  product_ids?: number[];
   created_at: Date;
   deleted_at: Date | null;
   is_deleted: boolean;
@@ -344,6 +345,7 @@ export interface CreateHomepageSettingsRequest {
   section_position: number;
   is_active?: boolean;
   section_images?: string[];
+  product_ids?: number[];
 }
 
 export interface UpdateHomepageSettingsRequest {
@@ -351,6 +353,7 @@ export interface UpdateHomepageSettingsRequest {
   section_position?: number;
   is_active?: boolean;
   section_images?: string[];
+  product_ids?: number[] | null;
 }
 
 export interface HomepageSettingsResponse {
@@ -359,5 +362,6 @@ export interface HomepageSettingsResponse {
   section_position: number;
   is_active: boolean;
   section_images: string[];
+  product_ids?: number[];
   created_at: string;
 }

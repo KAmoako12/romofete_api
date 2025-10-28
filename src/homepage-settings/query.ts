@@ -12,19 +12,34 @@ export namespace Query {
   export async function getHomepageSettingsById(id: number) {
     return knex(DB.HomepageSettings)
       .where({ id, is_deleted: false })
-      .first();
+      .first(
+        "id",
+        "section_title",
+        "section_position",
+        "is_active",
+        "section_images",
+        "product_ids",
+        "created_at"
+      );
   }
 
   export async function createHomepageSettings(data: CreateHomepageSettingsRequest) {
+    // Ensure product_ids is set to null if not provided (for DB compatibility)
+    const insertData = { ...data, product_ids: data.product_ids ?? null };
     return knex(DB.HomepageSettings)
-      .insert(data as any)
+      .insert(insertData as any)
       .returning("*");
   }
 
   export async function updateHomepageSettings(id: number, updates: UpdateHomepageSettingsRequest) {
+    // Ensure product_ids is set to null if explicitly set to undefined
+    const updateData = { ...updates };
+    if ("product_ids" in updates && updates.product_ids === undefined) {
+      updateData.product_ids = null;
+    }
     return knex(DB.HomepageSettings)
       .where({ id, is_deleted: false })
-      .update(updates as any)
+      .update(updateData as any)
       .returning("*");
   }
 
@@ -51,6 +66,7 @@ export namespace Query {
         "section_position",
         "is_active",
         "section_images",
+        "product_ids",
         "created_at"
       );
   }

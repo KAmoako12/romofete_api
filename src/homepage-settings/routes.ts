@@ -6,6 +6,7 @@ import {
 import {
   Query,
 } from "./query";
+import { getProductById } from "../product/services";
 import {
   requireAuthAndRole,
 } from "../_services/authService";
@@ -33,6 +34,16 @@ const router = Router();
  *           items:
  *             type: string
  *             format: uri
+ *         product_ids:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: List of product IDs associated with this homepage setting
+ *         products:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Product'
+ *           description: List of product objects associated with this homepage setting (GET only)
  *         created_at:
  *           type: string
  *           format: date-time
@@ -42,6 +53,14 @@ const router = Router();
  *         section_position: 1
  *         is_active: true
  *         section_images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+ *         product_ids: [101, 102]
+ *         products:
+ *           - id: 101
+ *             name: "Product 1"
+ *             price: "10.00"
+ *           - id: 102
+ *             name: "Product 2"
+ *             price: "20.00"
  *         created_at: "2025-10-28T21:00:00.000Z"
  *     CreateHomepageSettingsRequest:
  *       type: object
@@ -57,6 +76,11 @@ const router = Router();
  *           items:
  *             type: string
  *             format: uri
+ *         product_ids:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: List of product IDs to associate (optional)
  *       required:
  *         - section_title
  *         - section_position
@@ -65,6 +89,7 @@ const router = Router();
  *         section_position: 1
  *         is_active: true
  *         section_images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+ *         product_ids: [101, 102]
  *     UpdateHomepageSettingsRequest:
  *       type: object
  *       minProperties: 1
@@ -80,9 +105,15 @@ const router = Router();
  *           items:
  *             type: string
  *             format: uri
+ *         product_ids:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: List of product IDs to associate (optional)
  *       example:
  *         section_title: "Updated Title"
  *         is_active: false
+ *         product_ids: [101, 102]
  */
 
 /**
@@ -390,7 +421,28 @@ router.get("/", async (req, res) => {
       ? req.query.is_active === "true"
       : undefined;
     const homepageSettings = await Query.listHomepageSettings(isActive);
-    res.json({ data: homepageSettings });
+
+    // For each homepage setting, fetch product objects if product_ids is present
+    const homepageSettingsWithProducts = await Promise.all(
+      homepageSettings.map(async (setting: any) => {
+        let productIds: number[] = Array.isArray(setting.product_ids)
+          ? setting.product_ids
+          : (setting.product_ids ? [setting.product_ids] : []);
+        if (!productIds || productIds.length === 0) {
+          return { ...setting, products: [] };
+        }
+        // Fetch all products in parallel
+        const products = await Promise.all(
+          productIds.map((id) => getProductById(id))
+        );
+        return {
+          ...setting,
+          products: products.filter(Boolean), // Remove nulls if any product not found
+        };
+      })
+    );
+
+    res.json({ data: homepageSettingsWithProducts });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -457,7 +509,14 @@ router.get("/:id", async (req, res) => {
     if (!homepageSetting) {
       return res.status(404).json({ error: "Homepage setting not found" });
     }
-    res.json({ data: homepageSetting });
+    let productIds: number[] = Array.isArray(homepageSetting.product_ids)
+      ? homepageSetting.product_ids
+      : (homepageSetting.product_ids ? [homepageSetting.product_ids] : []);
+    let products: any[] = [];
+    if (productIds && productIds.length > 0) {
+      products = (await Promise.all(productIds.map((pid) => getProductById(pid)))).filter(Boolean);
+    }
+    res.json({ data: { ...homepageSetting, products } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
