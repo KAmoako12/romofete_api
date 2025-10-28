@@ -4,7 +4,9 @@ import { Query as ProductQuery } from "../product/query";
 import { Query as DeliveryQuery } from "../delivery-option/query";
 import { Query as CustomerQuery } from "../customer/query";
 import { CreateOrderRequest, UpdateOrderRequest, CreateOrderItemRequest } from "../_services/modelTypes";
+
 import bcrypt from "bcrypt";
+import { SmsService } from "../_services/smsService";
 
 // Paystack configuration
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -308,6 +310,23 @@ export async function updateOrder(id: number, updates: UpdateOrderRequest): Prom
   }
 
   const [updatedOrder] = await OrderQuery.updateOrder(id, updates);
+
+  // Send SMS if status is updated and customer phone is available
+  if (
+    updates.status &&
+    updates.status !== existingOrder.status &&
+    existingOrder.customer_phone
+  ) {
+    const senderId = process.env.ARKESL_SMS_SENDER_ID || "ROMOFETE";
+    const smsMessage = `Your order (${existingOrder.reference}) status has been updated to: ${updates.status}.`;
+    try {
+      await SmsService.sendSms(existingOrder.customer_phone, smsMessage, senderId);
+      console.log(`Order status update SMS sent to ${existingOrder.customer_phone}`);
+    } catch (smsError) {
+      console.error("Failed to send order status update SMS:", smsError);
+    }
+  }
+
   return formatOrderResponse(updatedOrder);
 }
 
