@@ -335,6 +335,27 @@ router.put(
   ...requireAuthAndRole("admin", "superAdmin"),
   async (req, res) => {
     try {
+      if (req.params.id === "hero-section") {
+        const { error, value } = heroSectionSchema.validate(req.body);
+        if (error) {
+          return res.status(400).json({ error: error.details[0].message });
+        }
+        const data = {
+          section_name: "hero-section",
+          section_position: 0,
+          section_title: value.section_title,
+          section_description: value.section_description,
+          section_images: value.section_images,
+        };
+        let hero = await Query.getHomepageSettingsBySectionName("hero-section");
+        if (hero) {
+          await Query.updateHomepageSettings(hero.id, data);
+          hero = await Query.getHomepageSettingsBySectionName("hero-section");
+        } else {
+          [hero] = await Query.createHomepageSettings(data);
+        }
+        return res.json({ data: hero });
+      }
       const id = Number(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid homepage setting id" });
