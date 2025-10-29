@@ -330,7 +330,8 @@ export interface PricingConfigResponse {
 
 export interface HomepageSettings {
   id: number;
-  section_title: string;
+  section_name: string;
+  section_description: string;
   section_position: number;
   is_active: boolean;
   section_images: string[];
@@ -341,7 +342,8 @@ export interface HomepageSettings {
 }
 
 export interface CreateHomepageSettingsRequest {
-  section_title: string;
+  section_name: string;
+  section_description: string;
   section_position: number;
   is_active?: boolean;
   section_images?: string[];
@@ -349,7 +351,8 @@ export interface CreateHomepageSettingsRequest {
 }
 
 export interface UpdateHomepageSettingsRequest {
-  section_title?: string;
+  section_name?: string;
+  section_description?: string;
   section_position?: number;
   is_active?: boolean;
   section_images?: string[];
@@ -358,7 +361,8 @@ export interface UpdateHomepageSettingsRequest {
 
 export interface HomepageSettingsResponse {
   id: number;
-  section_title: string;
+  section_name: string;
+  section_description: string;
   section_position: number;
   is_active: boolean;
   section_images: string[];

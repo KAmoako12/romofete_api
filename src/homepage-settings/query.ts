@@ -14,7 +14,8 @@ export namespace Query {
       .where({ id, is_deleted: false })
       .first(
         "id",
-        "section_title",
+        "section_name",
+        "section_description",
         "section_position",
         "is_active",
         "section_images",
@@ -62,12 +63,31 @@ export namespace Query {
       .orderBy("section_position", "asc")
       .select(
         "id",
-        "section_title",
+        "section_name",
+        "section_description",
         "section_position",
         "is_active",
         "section_images",
         "product_ids",
         "created_at"
       );
+  }
+
+  // Get homepage setting by section_name (e.g., "hero-section")
+  export async function getHomepageSettingsBySectionName(section_name: string) {
+    return knex(DB.HomepageSettings)
+      .where('section_name', section_name)
+      .select(
+        "id",
+        "section_name",
+        "section_title",
+        "section_description",
+        "section_position",
+        "is_active",
+        "section_images",
+        "product_ids",
+        "created_at"
+      )
+      .first();
   }
 }

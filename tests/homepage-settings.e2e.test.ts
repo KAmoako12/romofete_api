@@ -37,7 +37,154 @@ describe("Homepage Settings Endpoints E2E", () => {
       .expect(200);
 
     authToken = loginRes.body.token;
+});
+
+describe("Homepage Settings Hero Section Endpoints", () => {
+  let app: any;
+  let testDb: any;
+  let authToken: string;
+
+  const adminUser = {
+    username: "adminhs2",
+    email: "adminhs2@example.com",
+    password: "TestPass123!",
+    role: "admin"
+  };
+
+  beforeAll(async () => {
+    app = createApp();
+    testDb = Database.getDBTestInstance();
+    await testDb.migrate.latest();
+    await testDb("users").truncate();
+    await testDb("homepage_settings").truncate();
+
+    // Create admin user
+    const res = await request(app)
+      .post("/users")
+      .send(adminUser)
+      .expect(201);
+
+    // Login as admin
+    const loginRes = await request(app)
+      .post("/users/login")
+      .send({ username: adminUser.username, password: adminUser.password })
+      .expect(200);
+
+    authToken = loginRes.body.token;
   });
+
+  beforeEach(async () => {
+    await testDb("homepage_settings").truncate();
+  });
+
+  it("should return 404 if hero-section does not exist", async () => {
+    await request(app)
+      .get("/homepage-settings/hero-section")
+      .expect(404);
+  });
+
+  it("should create the hero-section with PUT and fetch it with GET", async () => {
+    const heroData = {
+      section_title: "Hero Title",
+      section_description: "Hero description",
+      section_images: ["https://example.com/hero1.jpg", "https://example.com/hero2.jpg"]
+    };
+
+    // Create (PUT)
+    const putRes = await request(app)
+      .put("/homepage-settings/hero-section")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send(heroData)
+      .expect(200);
+
+    expect(putRes.body.data).toHaveProperty("id");
+    expect(putRes.body.data.section_name).toBe("hero-section");
+    expect(putRes.body.data.section_position).toBe(0);
+    expect(putRes.body.data.section_title).toBe(heroData.section_title);
+    expect(putRes.body.data.section_description).toBe(heroData.section_description);
+    expect(putRes.body.data.section_images).toEqual(heroData.section_images);
+
+    // Fetch (GET)
+    const getRes = await request(app)
+      .get("/homepage-settings/hero-section")
+      .expect(200);
+
+    expect(getRes.body.data).toHaveProperty("id", putRes.body.data.id);
+    expect(getRes.body.data.section_name).toBe("hero-section");
+    expect(getRes.body.data.section_position).toBe(0);
+    expect(getRes.body.data.section_title).toBe(heroData.section_title);
+    expect(getRes.body.data.section_description).toBe(heroData.section_description);
+    expect(getRes.body.data.section_images).toEqual(heroData.section_images);
+  });
+
+  it("should update the hero-section with PUT", async () => {
+    const heroData = {
+      section_title: "Hero Title",
+      section_description: "Hero description",
+      section_images: ["https://example.com/hero1.jpg"]
+    };
+
+    // Create
+    await request(app)
+      .put("/homepage-settings/hero-section")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send(heroData)
+      .expect(200);
+
+    // Update
+    const updateData = {
+      section_title: "Updated Hero",
+      section_description: "Updated description",
+      section_images: ["https://example.com/hero2.jpg"]
+    };
+
+    const putRes = await request(app)
+      .put("/homepage-settings/hero-section")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send(updateData)
+      .expect(200);
+
+    expect(putRes.body.data.section_title).toBe(updateData.section_title);
+    expect(putRes.body.data.section_description).toBe(updateData.section_description);
+    expect(putRes.body.data.section_images).toEqual(updateData.section_images);
+
+    // Fetch to confirm update
+    const getRes = await request(app)
+      .get("/homepage-settings/hero-section")
+      .expect(200);
+
+    expect(getRes.body.data.section_title).toBe(updateData.section_title);
+    expect(getRes.body.data.section_description).toBe(updateData.section_description);
+    expect(getRes.body.data.section_images).toEqual(updateData.section_images);
+  });
+
+  it("should not allow client to override section_name or section_position", async () => {
+    const heroData = {
+      section_title: "Hero Title",
+      section_description: "Hero description",
+      section_images: ["https://example.com/hero1.jpg"],
+      section_name: "not-hero",
+      section_position: 99
+    };
+
+    const putRes = await request(app)
+      .put("/homepage-settings/hero-section")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send(heroData)
+      .expect(200);
+
+    expect(putRes.body.data.section_name).toBe("hero-section");
+    expect(putRes.body.data.section_position).toBe(0);
+  });
+
+  it("should require all fields for hero-section", async () => {
+    await request(app)
+      .put("/homepage-settings/hero-section")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ section_title: "", section_description: "", section_images: [] })
+      .expect(400);
+  });
+});
 
   afterAll(async () => {
     await Database.closeTestConnection();
@@ -48,7 +195,8 @@ describe("Homepage Settings Endpoints E2E", () => {
   });
 
   const testData = {
-    section_title: "Featured Products",
+    section_name: "featured_products",
+    section_description: "Featured products for the homepage",
     section_position: 1,
     is_active: true,
     section_images: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
@@ -78,7 +226,8 @@ describe("Homepage Settings Endpoints E2E", () => {
       .expect(201);
 
     expect(res.body).toHaveProperty("id");
-    expect(res.body.section_title).toBe(testData.section_title);
+    expect(res.body.section_name).toBe(testData.section_name);
+    expect(res.body.section_description).toBe(testData.section_description);
     expect(res.body.section_position).toBe(testData.section_position);
     expect(res.body.is_active).toBe(true);
     expect(Array.isArray(res.body.section_images)).toBe(true);
@@ -136,7 +285,8 @@ describe("Homepage Settings Endpoints E2E", () => {
       .expect(200);
 
     expect(res.body).toHaveProperty("id", id);
-    expect(res.body.section_title).toBe(testData.section_title);
+    expect(res.body.section_name).toBe(testData.section_name);
+    expect(res.body.section_description).toBe(testData.section_description);
   });
 
   it("should list homepage settings (ordered by section_position)", async () => {
@@ -173,14 +323,15 @@ describe("Homepage Settings Endpoints E2E", () => {
 
     const id = createRes.body.id;
 
-    const updateData = { section_title: "Updated Title", is_active: false };
+    const updateData = { section_name: "updated_title", section_description: "Updated description", is_active: false };
     const res = await request(app)
       .put(`/homepage-settings/${id}`)
       .set("Authorization", `Bearer ${authToken}`)
       .send(updateData)
       .expect(200);
 
-    expect(res.body.section_title).toBe(updateData.section_title);
+    expect(res.body.section_name).toBe(updateData.section_name);
+    expect(res.body.section_description).toBe(updateData.section_description);
     expect(res.body.is_active).toBe(false);
   });
 
@@ -216,7 +367,23 @@ describe("Homepage Settings Endpoints E2E", () => {
     await request(app)
       .post("/homepage-settings")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ section_title: "", section_position: -1 })
+      .send({ section_name: "", section_description: "", section_position: -1 })
+      .expect(400);
+  });
+
+  it("should not allow duplicate section_name", async () => {
+    // Create first
+    await request(app)
+      .post("/homepage-settings")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send(testData)
+      .expect(201);
+
+    // Try to create another with the same section_name
+    await request(app)
+      .post("/homepage-settings")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ ...testData, section_description: "Another description" })
       .expect(400);
   });
 });

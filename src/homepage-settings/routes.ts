@@ -18,6 +18,212 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     HeroSection:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         section_name:
+ *           type: string
+ *           example: "hero-section"
+ *         section_title:
+ *           type: string
+ *         section_description:
+ *           type: string
+ *         section_position:
+ *           type: integer
+ *           example: 0
+ *         section_images:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uri
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *       required:
+ *         - section_name
+ *         - section_title
+ *         - section_description
+ *         - section_position
+ *         - section_images
+ *       example:
+ *         id: 1
+ *         section_name: "hero-section"
+ *         section_title: "Hero Title"
+ *         section_description: "Hero description"
+ *         section_position: 0
+ *         section_images: ["https://example.com/hero1.jpg", "https://example.com/hero2.jpg"]
+ *         created_at: "2025-10-28T21:00:00.000Z"
+ */
+
+/**
+ * @openapi
+ * /homepage-settings/hero-section:
+ *   get:
+ *     summary: Get the homepage hero section
+ *     description: Retrieves the homepage hero section (only one object).
+ *     tags: [Homepage Settings]
+ *     responses:
+ *       200:
+ *         description: Hero section retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/HeroSection'
+ *       404:
+ *         description: Hero section not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *
+ *   put:
+ *     summary: Create or update the homepage hero section
+ *     description: Creates or updates the homepage hero section. Requires admin or superAdmin role. section_name is always "hero-section" and section_position is always 0.
+ *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               section_title:
+ *                 type: string
+ *               section_description:
+ *                 type: string
+ *               section_images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uri
+ *             required:
+ *               - section_title
+ *               - section_description
+ *               - section_images
+ *             example:
+ *               section_title: "Hero Title"
+ *               section_description: "Hero description"
+ *               section_images: ["https://example.com/hero1.jpg", "https://example.com/hero2.jpg"]
+ *     responses:
+ *       200:
+ *         description: Hero section created or updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/HeroSection'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
+
+
+
+// GET hero-section
+router.get("/hero-section", async (req, res) => {
+  try {
+    const hero = await Query.getHomepageSettingsBySectionName("hero-section");
+    if (!hero) {
+      return res.status(404).json({ error: "Hero section not found" });
+    }
+    res.json({ data: hero });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT hero-section (upsert)
+router.put(
+  "/hero-section",
+  ...requireAuthAndRole("admin", "superAdmin"),
+  async (req, res) => {
+    try {
+      const { error, value } = heroSectionSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+      // Always set section_name and section_position
+      const data = {
+        section_name: "hero-section",
+        section_position: 0,
+        section_title: value.section_title,
+        section_description: value.section_description,
+        section_images: value.section_images,
+      };
+      // Upsert logic
+      let hero = await Query.getHomepageSettingsBySectionName("hero-section");
+      if (hero) {
+        // Update
+        await Query.updateHomepageSettings(hero.id, data);
+        hero = await Query.getHomepageSettingsBySectionName("hero-section");
+      } else {
+        // Create
+        [hero] = await Query.createHomepageSettings(data);
+      }
+      res.json({ data: hero });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+/**
+ * @openapi
+ * components:
+ *   schemas:
  *     HomepageSettings:
  *       type: object
  *       properties:
@@ -786,5 +992,165 @@ router.delete(
     }
   }
 );
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     HeroSection:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         section_name:
+ *           type: string
+ *           example: "hero-section"
+ *         section_title:
+ *           type: string
+ *         section_description:
+ *           type: string
+ *         section_position:
+ *           type: integer
+ *           example: 0
+ *         section_images:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uri
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *       required:
+ *         - section_name
+ *         - section_title
+ *         - section_description
+ *         - section_position
+ *         - section_images
+ *       example:
+ *         id: 1
+ *         section_name: "hero-section"
+ *         section_title: "Hero Title"
+ *         section_description: "Hero description"
+ *         section_position: 0
+ *         section_images: ["https://example.com/hero1.jpg", "https://example.com/hero2.jpg"]
+ *         created_at: "2025-10-28T21:00:00.000Z"
+ */
+
+/**
+ * @openapi
+ * /homepage-settings/hero-section:
+ *   get:
+ *     summary: Get the homepage hero section
+ *     description: Retrieves the homepage hero section (only one object).
+ *     tags: [Homepage Settings]
+ *     responses:
+ *       200:
+ *         description: Hero section retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/HeroSection'
+ *       404:
+ *         description: Hero section not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *
+ *   put:
+ *     summary: Create or update the homepage hero section
+ *     description: Creates or updates the homepage hero section. Requires admin or superAdmin role. section_name is always "hero-section" and section_position is always 0.
+ *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               section_title:
+ *                 type: string
+ *               section_description:
+ *                 type: string
+ *               section_images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uri
+ *             required:
+ *               - section_title
+ *               - section_description
+ *               - section_images
+ *             example:
+ *               section_title: "Hero Title"
+ *               section_description: "Hero description"
+ *               section_images: ["https://example.com/hero1.jpg", "https://example.com/hero2.jpg"]
+ *     responses:
+ *       200:
+ *         description: Hero section created or updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/HeroSection'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
+
+import { heroSectionSchema } from "./schemas";
+
 
 export default router;
