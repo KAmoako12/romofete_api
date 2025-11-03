@@ -204,6 +204,7 @@ router.get("/", async (req, res) => {
     const pagination = { page, limit, sort_by, sort_order };
 
     const result = await listProductTypes(filters, pagination);
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
