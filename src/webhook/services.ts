@@ -2,6 +2,7 @@
 
 import { Query as OrderQuery } from "../order/query";
 import { SmsService } from "../_services/smsService";
+import { EmailService } from "../_services/emailService";
 
 // Interface for Paystack webhook event data
 export interface PaystackWebhookData {
@@ -142,6 +143,34 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
         console.log(`Success SMS sent to ${order.customer_phone}`);
       } catch (smsError) {
         console.error("Failed to send payment success SMS:", smsError);
+      }
+    }
+
+    // Send email to customer on payment success
+    if (order.customer_email) {
+      const emailSubject = `Payment Confirmed - Order ${reference}`;
+      const emailText = `Dear ${order.customer_name || 'Customer'},\n\nYour payment for order ${reference} was successful. Thank you for your purchase!\n\nOrder Total: GHS ${order.total_price}\n\nWe will process your order shortly.\n\nBest regards,\nRomofete Team`;
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4CAF50;">Payment Confirmed ✓</h2>
+          <p>Dear ${order.customer_name || 'Customer'},</p>
+          <p>Your payment for order <strong>${reference}</strong> was successful. Thank you for your purchase!</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Order Reference:</strong> ${reference}</p>
+            <p style="margin: 5px 0;"><strong>Order Total:</strong> GHS ${order.total_price}</p>
+            <p style="margin: 5px 0;"><strong>Payment Status:</strong> <span style="color: #4CAF50;">Completed</span></p>
+          </div>
+          <p>We will process your order shortly and keep you updated.</p>
+          <p style="margin-top: 30px;">Best regards,<br><strong>Romofete Team</strong></p>
+        </div>
+      `;
+      
+      try {
+        const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'orders@romofete.com';
+        await EmailService.sendSimpleEmail(fromEmail, order.customer_email, emailSubject, emailText, emailHtml);
+        console.log(`Payment confirmation email sent to ${order.customer_email}`);
+      } catch (emailError) {
+        console.error("Failed to send payment confirmation email:", emailError);
       }
     }
 

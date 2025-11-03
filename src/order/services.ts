@@ -7,6 +7,7 @@ import { CreateOrderRequest, UpdateOrderRequest, CreateOrderItemRequest } from "
 
 import bcrypt from "bcrypt";
 import { SmsService } from "../_services/smsService";
+import { EmailService } from "../_services/emailService";
 
 // Paystack configuration
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -324,6 +325,39 @@ export async function updateOrder(id: number, updates: UpdateOrderRequest): Prom
       console.log(`Order status update SMS sent to ${existingOrder.customer_phone}`);
     } catch (smsError) {
       console.error("Failed to send order status update SMS:", smsError);
+    }
+  }
+
+  // Send email if status is updated and customer email is available
+  if (
+    updates.status &&
+    updates.status !== existingOrder.status &&
+    existingOrder.customer_email
+  ) {
+    const statusDisplay = updates.status.charAt(0).toUpperCase() + updates.status.slice(1);
+    const emailSubject = `Order Status Update - ${existingOrder.reference}`;
+    const emailText = `Dear ${existingOrder.customer_name || 'Customer'},\n\nYour order (${existingOrder.reference}) status has been updated to: ${statusDisplay}.\n\nThank you for choosing Romofete!\n\nBest regards,\nRomofete Team`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2196F3;">Order Status Update</h2>
+        <p>Dear <strong>${existingOrder.customer_name || 'Customer'}</strong>,</p>
+        <p>Your order status has been updated:</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Order Reference:</strong> ${existingOrder.reference}</p>
+          <p style="margin: 5px 0;"><strong>Previous Status:</strong> ${existingOrder.status}</p>
+          <p style="margin: 5px 0;"><strong>New Status:</strong> <span style="color: #2196F3; font-weight: bold;">${statusDisplay}</span></p>
+        </div>
+        <p>Thank you for choosing Romofete!</p>
+        <p style="margin-top: 30px;">Best regards,<br><strong>Romofete Team</strong></p>
+      </div>
+    `;
+    
+    try {
+      const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'orders@romofete.com';
+      await EmailService.sendSimpleEmail(fromEmail, existingOrder.customer_email, emailSubject, emailText, emailHtml);
+      console.log(`Order status update email sent to ${existingOrder.customer_email}`);
+    } catch (emailError) {
+      console.error("Failed to send order status update email:", emailError);
     }
   }
 

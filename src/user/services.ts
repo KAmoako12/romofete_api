@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { Query } from "./query";
 import { generateToken, AuthTokenPayload } from "../_services/authService";
 import { SmsService } from "../_services/smsService";
+import { EmailService } from "../_services/emailService";
 
 const SALT_ROUNDS = 10;
 
@@ -40,6 +41,34 @@ export async function addUser({
       console.log(`Registration SMS sent to ${user.phone}`);
     } catch (smsError) {
       console.error("Failed to send registration SMS:", smsError);
+    }
+  }
+
+  // Send welcome email on successful registration
+  if (user && user.email) {
+    const emailSubject = "Welcome to Romofete!";
+    const emailText = `Dear ${user.username},\n\nYour registration was successful! Welcome to Romofete.\n\nYou can now log in and start managing your orders.\n\nBest regards,\nRomofete Team`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4CAF50;">Welcome to Romofete! 🎉</h2>
+        <p>Dear <strong>${user.username}</strong>,</p>
+        <p>Your registration was successful! We're excited to have you on board.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Username:</strong> ${user.username}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${user.email}</p>
+          <p style="margin: 5px 0;"><strong>Role:</strong> ${user.role}</p>
+        </div>
+        <p>You can now log in and start managing your orders.</p>
+        <p style="margin-top: 30px;">Best regards,<br><strong>Romofete Team</strong></p>
+      </div>
+    `;
+    
+    try {
+      const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+      await EmailService.sendSimpleEmail(fromEmail, user.email, emailSubject, emailText, emailHtml);
+      console.log(`Welcome email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
     }
   }
 
