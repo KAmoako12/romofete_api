@@ -1,5 +1,6 @@
 // This file contains service functions and business logic for ProductType-related operations.
 import { Query } from "./query";
+import { Query as ProductQuery } from "../product/query";
 import { CreateProductTypeRequest, UpdateProductTypeRequest, ProductTypeResponse } from "../_services/modelTypes";
 
 export async function addProductType(data: CreateProductTypeRequest) {
@@ -54,6 +55,10 @@ export async function deleteProductType(id: number) {
     throw new Error("Product type not found");
   }
 
+  // Delete all products with this product type first
+  await ProductQuery.deleteProductsByProductTypeId(id);
+
+  // Then delete the product type
   const [deleted] = await Query.deleteProductType(id);
   return formatProductTypeResponse(deleted);
 }

@@ -50,6 +50,14 @@ export namespace Query {
         return knex(DB.Products).where({ id, is_deleted: false }).update({ is_deleted: true, deleted_at: new Date() }).returning('*');
     }
 
+    export async function deleteProductsByProductTypeId(productTypeId: number, trx?: Knex.Transaction) {
+        const query = trx ? trx(DB.Products) : knex(DB.Products);
+        return query
+            .where({ product_type_id: productTypeId, is_deleted: false })
+            .update({ is_deleted: true, deleted_at: new Date() })
+            .returning('*');
+    }
+
     export async function listProducts(filters: ProductFilters = {}, pagination: PaginationOptions = {}) {
         const {
             product_type_id,
