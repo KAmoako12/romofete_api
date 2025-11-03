@@ -15,7 +15,9 @@ export const createOrderSchema = Joi.object({
   customer_name: Joi.string().max(160).optional(),
   // For guest customers who want to be registered
   customer_password: Joi.string().min(8).max(120).optional(),
-  register_customer: Joi.boolean().default(false).optional()
+  register_customer: Joi.boolean().default(false).optional(),
+  // Flexible metadata field for any client-specific data
+  metadata: Joi.object().optional().allow(null)
 }).custom((value, helpers) => {
   // If user_id is not provided (guest order), require customer information
   if (!value.user_id) {
@@ -36,7 +38,9 @@ export const updateOrderSchema = Joi.object({
   status: Joi.string().valid('pending', 'processing', 'shipped', 'delivered', 'cancelled').optional(),
   payment_status: Joi.string().valid('pending', 'processing', 'completed', 'failed', 'refunded').optional(),
   payment_reference: Joi.string().max(100).optional(),
-  delivery_address: Joi.string().max(500).optional()
+  delivery_address: Joi.string().max(500).optional(),
+  // Flexible metadata field for any client-specific data
+  metadata: Joi.object().optional().allow(null)
 }).min(1); // At least one field must be provided
 
 export const orderFiltersSchema = Joi.object({

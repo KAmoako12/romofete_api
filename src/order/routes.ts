@@ -85,6 +85,11 @@ const router = Router();
  *         customer_name:
  *           type: string
  *           description: Customer name
+ *         metadata:
+ *           type: object
+ *           additionalProperties: true
+ *           nullable: true
+ *           description: Flexible metadata field for storing any client-specific data (e.g., gift messages, special instructions, tracking IDs, campaign information)
  *         created_at:
  *           type: string
  *           format: date-time
@@ -109,6 +114,9 @@ const router = Router();
  *         customer_email: "customer@example.com"
  *         customer_phone: "+1234567890"
  *         customer_name: "John Doe"
+ *         metadata:
+ *           gift_message: "Happy Birthday!"
+ *           source: "mobile_app"
  *         created_at: "2023-01-01T00:00:00.000Z"
  *     
  *     OrderItem:
@@ -189,6 +197,11 @@ const router = Router();
  *           type: boolean
  *           default: false
  *           description: Whether to automatically register the guest as a customer
+ *         metadata:
+ *           type: object
+ *           additionalProperties: true
+ *           nullable: true
+ *           description: Flexible metadata field for storing any client-specific data such as gift messages, special instructions, tracking IDs, campaign information, or any custom data your application needs
  *       example:
  *         items:
  *           - product_id: 1
@@ -202,6 +215,11 @@ const router = Router();
  *         customer_name: "John Doe"
  *         customer_password: "securepassword123"
  *         register_customer: true
+ *         metadata:
+ *           gift_message: "Happy Birthday!"
+ *           special_instructions: "Please call before delivery"
+ *           source: "mobile_app"
+ *           campaign_id: "SUMMER2023"
  *     
  *     PaystackInitializeResponse:
  *       type: object
@@ -728,6 +746,11 @@ router.get("/:id", async (req, res) => {
  *                 type: string
  *               delivery_address:
  *                 type: string
+ *               metadata:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 nullable: true
+ *                 description: Flexible metadata field for storing any client-specific data. You can add new properties to existing metadata or replace it entirely.
  *     responses:
  *       200:
  *         description: Order updated successfully

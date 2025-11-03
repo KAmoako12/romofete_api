@@ -30,6 +30,7 @@ export interface OrderResponse {
   customer_email: string | null;
   customer_phone: string | null;
   customer_name: string | null;
+  metadata?: Record<string, any> | null;
   created_at: string;
   items?: OrderItemResponse[];
   user_username?: string;
@@ -183,7 +184,8 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderRespon
     delivery_address: data.delivery_address || null,
     customer_email: data.customer_email || null,
     customer_phone: data.customer_phone || null,
-    customer_name: data.customer_name || null
+    customer_name: data.customer_name || null,
+    metadata: data.metadata || null
   };
 
   const [order] = await OrderQuery.createOrder(orderData);
@@ -520,6 +522,7 @@ function formatOrderResponse(order: any): OrderResponse {
     customer_email: order.customer_email,
     customer_phone: order.customer_phone,
     customer_name: order.customer_name,
+    metadata: order.metadata || null,
     created_at: order.created_at.toISOString(),
     user_username: order.user_username,
     user_email: order.user_email

@@ -108,6 +108,7 @@ export interface Order {
   customer_email: string | null;
   customer_phone: string | null;
   customer_name: string | null;
+  metadata: Record<string, any> | null; // Flexible metadata field for client-specific data
   created_at: Date;
   deleted_at: Date | null;
   is_deleted: boolean;
@@ -126,6 +127,7 @@ export interface CreateOrderRequest {
   customer_name?: string;
   customer_password?: string;
   register_customer?: boolean;
+  metadata?: Record<string, any>; // Flexible metadata field for client-specific data
 }
 
 export interface UpdateOrderRequest {
@@ -133,6 +135,7 @@ export interface UpdateOrderRequest {
   payment_status?: string;
   payment_reference?: string;
   delivery_address?: string;
+  metadata?: Record<string, any>; // Flexible metadata field for client-specific data
 }
 
 export interface OrderItem {
