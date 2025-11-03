@@ -322,7 +322,7 @@ export namespace Query {
         
         // Find similar products based on:
         // 1. Same occasion(s) - products that can be used for the same occasions (highest priority)
-        // 2. Same product type
+        // 2. Different product type (exclude same product type)
         // 3. Similar price range (within 20% of the target product's price)
         // 4. Exclude the target product itself
         // 5. Apply additional filters
@@ -334,7 +334,8 @@ export namespace Query {
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
             .where(`${DB.Products}.is_deleted`, false)
-            .where(`${DB.Products}.id`, '!=', productId);
+            .where(`${DB.Products}.id`, '!=', productId)
+            .where(`${DB.Products}.product_type_id`, '!=', targetProduct.product_type_id);
 
         // Apply stock filter (default to in-stock unless specified otherwise)
         if (in_stock !== false) {
@@ -369,8 +370,6 @@ export namespace Query {
             CASE 
                 -- Highest priority: Products with matching occasion in extra_properties
                 WHEN ${targetOccasion ? `${DB.Products}.extra_properties ->> 'occasion' ILIKE ${knex.raw('?', [`%${targetOccasion}%`])}` : 'FALSE'} THEN 200
-                -- High priority: Products with same product type (likely same occasion category)
-                WHEN ${DB.Products}.product_type_id = ? THEN 150
         `;
 
         // Add conditions for matching allowed_types if target has them
@@ -387,7 +386,7 @@ export namespace Query {
         }
 
         similarityScoreSQL += `
-                -- Medium priority: Similar price range
+                -- High priority: Similar price range
                 WHEN ${DB.Products}.price BETWEEN ? AND ? THEN 50
                 -- Low priority: Other products
                 ELSE 10
@@ -400,7 +399,7 @@ export namespace Query {
                 `${DB.ProductTypes}.name as product_type_name`,
                 `${DB.ProductTypes}.allowed_types as product_type_allowed_types`,
                 // Add a similarity score for ordering based on occasions
-                knex.raw(similarityScoreSQL, [targetProduct.product_type_id, priceRangeMin, priceRangeMax])
+                knex.raw(similarityScoreSQL, [priceRangeMin, priceRangeMax])
             )
             .orderBy('similarity_score', 'desc')
             .orderBy(`${DB.Products}.created_at`, 'desc')

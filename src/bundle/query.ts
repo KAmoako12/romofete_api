@@ -227,7 +227,18 @@ export class BundleQuery {
 
   // Get products that are in the same bundles as a given product (for similar products feature)
   async getProductsInSameBundles(productId: number, limit: number = 10) {
-    // First, get all bundles that contain the given product
+    // First, get the product_type_id of the given product
+    const targetProduct = await this.db(DB.Products)
+      .where('id', productId)
+      .where('is_deleted', false)
+      .select('product_type_id')
+      .first();
+
+    if (!targetProduct) {
+      return [];
+    }
+
+    // Get all bundles that contain the given product
     const bundleIds = await this.db(DB.BundleProducts)
       .where('product_id', productId)
       .where('is_deleted', false)
@@ -237,12 +248,13 @@ export class BundleQuery {
       return [];
     }
 
-    // Then get all other products in those bundles
+    // Then get all other products in those bundles, excluding products with the same product_type_id
     const similarProducts = await this.db(DB.BundleProducts)
       .join(DB.Products, `${DB.BundleProducts}.product_id`, `${DB.Products}.id`)
       .join(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
       .whereIn(`${DB.BundleProducts}.bundle_id`, bundleIds)
       .where(`${DB.BundleProducts}.product_id`, '!=', productId)
+      .where(`${DB.Products}.product_type_id`, '!=', targetProduct.product_type_id)
       .where(`${DB.BundleProducts}.is_deleted`, false)
       .where(`${DB.Products}.is_deleted`, false)
       .groupBy(
@@ -252,6 +264,7 @@ export class BundleQuery {
         `${DB.Products}.price`,
         `${DB.Products}.stock`,
         `${DB.Products}.images`,
+        `${DB.Products}.product_type_id`,
         `${DB.ProductTypes}.name`
       )
       .select(
@@ -260,6 +273,7 @@ export class BundleQuery {
         `${DB.Products}.description`,
         `${DB.Products}.price`,
         `${DB.Products}.stock`,
+        `${DB.Products}.product_type_id`,
         `${DB.Products}.images`,
         `${DB.ProductTypes}.name as product_type_name`
       )
