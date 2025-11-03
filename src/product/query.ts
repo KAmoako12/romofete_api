@@ -316,11 +316,16 @@ export namespace Query {
 
         const { minPrice, maxPrice, occasion, product_type_id, in_stock } = filters;
 
+        // Extract occasions from the target product
+        const targetOccasion = targetProduct.extra_properties?.occasion;
+        const targetAllowedTypes = targetProduct.product_type_allowed_types || [];
+        
         // Find similar products based on:
-        // 1. Same product type (highest priority)
-        // 2. Similar price range (within 20% of the target product's price)
-        // 3. Exclude the target product itself
-        // 4. Apply additional filters
+        // 1. Same occasion(s) - products that can be used for the same occasions (highest priority)
+        // 2. Same product type
+        // 3. Similar price range (within 20% of the target product's price)
+        // 4. Exclude the target product itself
+        // 5. Apply additional filters
         
         const targetPrice = parseFloat(targetProduct.price);
         const priceRangeMin = targetPrice * 0.8; // 20% below
@@ -336,19 +341,9 @@ export namespace Query {
             query = query.where(`${DB.Products}.stock`, '>', 0);
         }
 
-        // Apply product type filter if specified, otherwise use similarity logic
+        // Apply product type filter if specified
         if (product_type_id) {
             query = query.where(`${DB.Products}.product_type_id`, product_type_id);
-        } else {
-            query = query.where(function() {
-                // Priority 1: Same product type
-                this.where(`${DB.Products}.product_type_id`, targetProduct.product_type_id)
-                    // Priority 2: Similar price range
-                    .orWhere(function() {
-                        this.where(`${DB.Products}.price`, '>=', priceRangeMin)
-                            .where(`${DB.Products}.price`, '<=', priceRangeMax);
-                    });
-            });
         }
 
         // Apply price filters (override similarity price range if specified)
@@ -360,7 +355,7 @@ export namespace Query {
             query = query.where(`${DB.Products}.price`, '<=', maxPrice);
         }
 
-        // Apply occasion filter
+        // Apply occasion filter if explicitly provided
         if (occasion) {
             query = query.where(function() {
                 this.where(`${DB.ProductTypes}.name`, 'ilike', `%${occasion}%`)
@@ -369,18 +364,43 @@ export namespace Query {
             });
         }
 
+        // Build similarity score with occasion matching as highest priority
+        let similarityScoreSQL = `
+            CASE 
+                -- Highest priority: Products with matching occasion in extra_properties
+                WHEN ${targetOccasion ? `${DB.Products}.extra_properties ->> 'occasion' ILIKE ${knex.raw('?', [`%${targetOccasion}%`])}` : 'FALSE'} THEN 200
+                -- High priority: Products with same product type (likely same occasion category)
+                WHEN ${DB.Products}.product_type_id = ? THEN 150
+        `;
+
+        // Add conditions for matching allowed_types if target has them
+        if (targetAllowedTypes && Array.isArray(targetAllowedTypes) && targetAllowedTypes.length > 0) {
+            // Check if any of the target's allowed types match the product's allowed types or occasion
+            const allowedTypesConditions = targetAllowedTypes.map((type: string) => 
+                `(CAST(${DB.ProductTypes}.allowed_types AS TEXT) ILIKE ${knex.raw('?', [`%${type}%`])} OR ${DB.Products}.extra_properties ->> 'occasion' ILIKE ${knex.raw('?', [`%${type}%`])})`
+            ).join(' OR ');
+            
+            similarityScoreSQL += `
+                -- Products matching any of the target's allowed occasion types
+                WHEN ${allowedTypesConditions} THEN 180
+            `;
+        }
+
+        similarityScoreSQL += `
+                -- Medium priority: Similar price range
+                WHEN ${DB.Products}.price BETWEEN ? AND ? THEN 50
+                -- Low priority: Other products
+                ELSE 10
+            END as similarity_score
+        `;
+
         return query
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`,
-                // Add a similarity score for ordering
-                knex.raw(`
-                    CASE 
-                        WHEN ${DB.Products}.product_type_id = ? THEN 100
-                        WHEN ${DB.Products}.price BETWEEN ? AND ? THEN 50
-                        ELSE 0
-                    END as similarity_score
-                `, [targetProduct.product_type_id, priceRangeMin, priceRangeMax])
+                `${DB.ProductTypes}.allowed_types as product_type_allowed_types`,
+                // Add a similarity score for ordering based on occasions
+                knex.raw(similarityScoreSQL, [targetProduct.product_type_id, priceRangeMin, priceRangeMax])
             )
             .orderBy('similarity_score', 'desc')
             .orderBy(`${DB.Products}.created_at`, 'desc')
