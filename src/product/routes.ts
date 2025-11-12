@@ -310,6 +310,10 @@ router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) 
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
+    
+    // Automatically set created_by from authenticated user
+    value.created_by = req.user!.id;
+    
     const product = await addProduct(value);
     res.status(201).json(product);
   } catch (err: any) {
@@ -488,6 +492,7 @@ router.get("/low-stock", ...requireAuthAndRole("admin", "superAdmin"), async (re
       minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
       maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
       occasion: req.query.occasion as string,
+      created_by: req.user!.role === 'admin' ? req.user!.id : undefined, // Filter by creator for regular admins
     };
 
     // Remove undefined values
@@ -952,6 +957,16 @@ router.put("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req, res
       return res.status(400).json({ error: "Invalid product ID" });
     }
     
+    // Check ownership for regular admins
+    const existingProduct = await getProductById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    
+    if (req.user!.role === 'admin' && existingProduct.created_by !== req.user!.id) {
+      return res.status(403).json({ error: "You can only update your own products" });
+    }
+    
     const { error, value } = updateProductSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
@@ -1017,6 +1032,17 @@ router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req, 
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid product ID" });
     }
+    
+    // Check ownership for regular admins
+    const existingProduct = await getProductById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    
+    if (req.user!.role === 'admin' && existingProduct.created_by !== req.user!.id) {
+      return res.status(403).json({ error: "You can only delete your own products" });
+    }
+    
     const product = await deleteProduct(id);
     res.json({ message: "Product deleted", product });
   } catch (err: any) {
@@ -1086,6 +1112,16 @@ router.patch("/:id/stock", ...requireAuthAndRole("admin", "superAdmin"), async (
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid product ID" });
+    }
+    
+    // Check ownership for regular admins
+    const existingProduct = await getProductById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    
+    if (req.user!.role === 'admin' && existingProduct.created_by !== req.user!.id) {
+      return res.status(403).json({ error: "You can only update stock for your own products" });
     }
     
     const { error, value } = stockUpdateSchema.validate(req.body);

@@ -99,6 +99,7 @@ export interface Product {
   sub_category_id: number | null;
   images: string[] | null;
   extra_properties: Record<string, any> | null;
+  created_by: number | null;
   created_at: Date;
   deleted_at: Date | null;
   is_deleted: boolean;
@@ -113,6 +114,7 @@ export interface CreateProductRequest {
   sub_category_id?: number | null;
   images?: string[] | string;
   extra_properties?: Record<string, any> | string;
+  created_by?: number; // Auto-set from authenticated user
 }
 
 export interface UpdateProductRequest {

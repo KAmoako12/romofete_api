@@ -14,6 +14,7 @@ export interface ProductResponse {
   product_type_name?: string;
   images: string[] | null;
   extra_properties: Record<string, any> | null;
+  created_by?: number | null;
   created_at: string;
   in_stock: boolean;
   stock_status: 'in_stock' | 'low_stock' | 'out_of_stock';
@@ -267,6 +268,7 @@ function formatProductResponse(product: any): ProductResponse {
     product_type_name: product.product_type_name,
     images: product.images,
     extra_properties: product.extra_properties,
+    created_by: product.created_by,
     created_at: product.created_at.toISOString(),
     in_stock: product.stock > 0,
     stock_status: getStockStatus(product.stock)

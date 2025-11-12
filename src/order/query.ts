@@ -10,6 +10,7 @@ export interface OrderFilters {
   customer_email?: string;
   date_from?: string;
   date_to?: string;
+  admin_user_id?: number; // Filter orders containing products created by this admin
 }
 
 export interface OrderPaginationOptions {
@@ -80,7 +81,8 @@ export namespace Query {
             payment_status,
             customer_email,
             date_from,
-            date_to
+            date_to,
+            admin_user_id
         } = filters;
 
         const {
@@ -96,6 +98,17 @@ export namespace Query {
             .leftJoin(DB.DeliveryOptions, `${DB.Orders}.delivery_option_id`, `${DB.DeliveryOptions}.id`)
             .leftJoin(DB.Users, `${DB.Orders}.user_id`, `${DB.Users}.id`)
             .where(`${DB.Orders}.is_deleted`, false);
+
+        // Filter orders by admin's products (for role-based access control)
+        if (admin_user_id) {
+            query = query
+                .join(DB.OrderItems, `${DB.Orders}.id`, `${DB.OrderItems}.order_id`)
+                .join(DB.Products, `${DB.OrderItems}.product_id`, `${DB.Products}.id`)
+                .where(`${DB.Products}.created_by`, admin_user_id)
+                .where(`${DB.OrderItems}.is_deleted`, false)
+                .where(`${DB.Products}.is_deleted`, false)
+                .distinct(`${DB.Orders}.id`);
+        }
 
         // Apply filters
         if (user_id) {

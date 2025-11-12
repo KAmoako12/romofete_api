@@ -330,6 +330,11 @@ router.get("/", ...requireAuthAndRole("admin", "superAdmin"), async (req, res) =
     const { page, limit, sort_by, sort_order, ...filters } = value;
     const pagination = { page, limit, sort_by, sort_order };
 
+    // Regular admins can only see orders containing their products
+    if (req.user!.role === 'admin') {
+      filters.admin_user_id = req.user!.id;
+    }
+
     const result = await listOrders(filters, pagination);
     res.json(result);
   } catch (err: any) {
