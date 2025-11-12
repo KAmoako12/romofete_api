@@ -161,8 +161,10 @@ const router = Router();
  * /users:
  *   post:
  *     summary: Create a new user
- *     description: Creates a new user with the provided information
+ *     description: Creates a new user with the provided information. Requires superAdmin role.
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -184,6 +186,22 @@ const router = Router();
  *               $ref: '#/components/schemas/Error'
  *             example:
  *               error: "\"username\" is required"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Access denied. No token provided."
+ *       403:
+ *         description: Forbidden - Requires superAdmin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Access denied. Insufficient role."
  *       500:
  *         description: Internal server error
  *         content:

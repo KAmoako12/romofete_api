@@ -278,7 +278,10 @@ router.get("/:id", async (req, res) => {
  * /homepage-settings:
  *   post:
  *     summary: Create a new homepage setting
+ *     description: Creates a new homepage setting. Requires admin role.
  *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -292,6 +295,10 @@ router.get("/:id", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/HomepageSettings'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.post(
   "/",
@@ -315,7 +322,17 @@ router.post(
  * /homepage-settings/{id}:
  *   put:
  *     summary: Update homepage setting by ID
+ *     description: Updates a homepage setting by ID. Requires admin role.
  *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Homepage setting ID or 'hero-section'
  *     requestBody:
  *       required: true
  *       content:
@@ -329,6 +346,10 @@ router.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/HomepageSettings'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.put(
   "/:id",
@@ -377,7 +398,17 @@ router.put(
  * /homepage-settings/{id}:
  *   delete:
  *     summary: Delete homepage setting by ID
+ *     description: Deletes a homepage setting by ID. Requires admin role.
  *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Homepage setting ID
  *     responses:
  *       200:
  *         description: Homepage setting deleted
@@ -388,6 +419,10 @@ router.put(
  *               properties:
  *                 message:
  *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.delete(
   "/:id",
@@ -442,7 +477,10 @@ router.get("/hero-section", async (req, res) => {
  * /homepage-settings/hero-section:
  *   put:
  *     summary: Create or update the homepage hero section
+ *     description: Creates or updates the homepage hero section. Requires admin role.
  *     tags: [Homepage Settings]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -477,6 +515,10 @@ router.get("/hero-section", async (req, res) => {
  *               properties:
  *                 data:
  *                   $ref: '#/components/schemas/HeroSection'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.put(
   "/hero-section",

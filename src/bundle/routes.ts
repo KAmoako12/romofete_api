@@ -9,6 +9,8 @@ import {
   bundleFiltersSchema,
   bulkAddProductsSchema
 } from "./schemas";
+import { requireAuthAndRole } from "../_services/authService";
+import "../_services/types"; // Import to extend Express Request interface
 
 const router = Router();
 const bundleService = new BundleService(Database.getDBInstance());
@@ -61,7 +63,7 @@ const bundleService = new BundleService(Database.getDBInstance());
  *         description: Server error
  */
  // Create a new bundle
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const { error, value } = createBundleSchema.validate(req.body);
     if (error) {
@@ -134,7 +136,7 @@ router.post("/", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Get all bundles with optional filters
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const { error, value } = bundleFiltersSchema.validate(req.query);
     if (error) {
@@ -186,7 +188,7 @@ router.get("/", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Get bundle by ID
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -254,7 +256,7 @@ router.get("/:id", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Update bundle
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -314,7 +316,7 @@ router.put("/:id", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Delete bundle
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -379,7 +381,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Add a product to a bundle
-router.post("/:id/products", async (req: Request, res: Response) => {
+router.post("/:id/products", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -467,7 +469,7 @@ router.post("/:id/products", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Bulk add products to a bundle
-router.post("/:id/products/bulk", async (req: Request, res: Response) => {
+router.post("/:id/products/bulk", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -539,7 +541,7 @@ router.post("/:id/products/bulk", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Remove a product from a bundle
-router.delete("/:id/products/:productId", async (req: Request, res: Response) => {
+router.delete("/:id/products/:productId", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     const productId = parseInt(req.params.productId);
@@ -615,7 +617,7 @@ router.delete("/:id/products/:productId", async (req: Request, res: Response) =>
  *         description: Server error
  */
  // Update product quantity in a bundle
-router.put("/:id/products/:productId", async (req: Request, res: Response) => {
+router.put("/:id/products/:productId", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     const productId = parseInt(req.params.productId);
@@ -684,7 +686,7 @@ router.put("/:id/products/:productId", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Calculate bundle price with discount
-router.get("/:id/price", async (req: Request, res: Response) => {
+router.get("/:id/price", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const bundleId = parseInt(req.params.id);
     if (isNaN(bundleId)) {
@@ -725,7 +727,7 @@ router.get("/:id/price", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Get bundle statistics
-router.get("/stats/overview", async (req: Request, res: Response) => {
+router.get("/stats/overview", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const stats = await bundleService.getBundleStats();
     res.json({
@@ -772,7 +774,7 @@ router.get("/stats/overview", async (req: Request, res: Response) => {
  *         description: Server error
  */
  // Get products in same bundles (for similar products feature)
-router.get("/similar-products/:productId", async (req: Request, res: Response) => {
+router.get("/similar-products/:productId", ...requireAuthAndRole("admin", "superAdmin"), async (req: Request, res: Response) => {
   try {
     const productId = parseInt(req.params.productId);
     if (isNaN(productId)) {
