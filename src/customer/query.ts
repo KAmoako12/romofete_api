@@ -40,8 +40,29 @@ export namespace Query {
         email: string;
         password: string;
         is_active: boolean;
+        email_verified: boolean;
+        verification_code: string | null;
+        verification_code_expires: Date | null;
+        reset_code: string | null;
+        reset_code_expires: Date | null;
     }>) {
         return knex(DB.Customers).where({ id, is_deleted: false }).update(updates).returning('*');
+    }
+
+    export async function getCustomerByVerificationCode(code: string) {
+        return knex(DB.Customers)
+            .where('verification_code', code)
+            .andWhere('is_deleted', false)
+            .andWhere('verification_code_expires', '>', new Date())
+            .first();
+    }
+
+    export async function getCustomerByResetCode(code: string) {
+        return knex(DB.Customers)
+            .where('reset_code', code)
+            .andWhere('is_deleted', false)
+            .andWhere('reset_code_expires', '>', new Date())
+            .first();
     }
 
     export async function deleteCustomer(id: number) {

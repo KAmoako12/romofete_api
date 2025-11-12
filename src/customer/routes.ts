@@ -1,7 +1,15 @@
 // This file defines the API routes/endpoints for Customer-related operations.
 
 import { Router } from "express";
-import { createCustomerSchema, updateCustomerSchema, loginCustomerSchema } from "./schemas";
+import { 
+  createCustomerSchema, 
+  updateCustomerSchema, 
+  loginCustomerSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
+  requestPasswordResetSchema,
+  resetPasswordSchema
+} from "./schemas";
 import {
   registerCustomer,
   getCustomerById,
@@ -9,6 +17,10 @@ import {
   updateCustomer,
   deleteCustomer,
   loginCustomer,
+  verifyEmail,
+  resendVerificationEmail,
+  requestPasswordReset,
+  resetPassword,
 } from "./services";
 import { 
   authenticateToken, 
@@ -336,6 +348,236 @@ router.post("/login", async (req, res) => {
     res.json({ customer, token });
   } catch (err: any) {
     res.status(401).json({ error: err.message });
+  }
+});
+
+/**
+ * @openapi
+ * /customers/verify-email:
+ *   post:
+ *     summary: Verify customer email
+ *     description: Verifies a customer's email using the 6-digit code sent during registration
+ *     tags: [Customers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 length: 6
+ *                 pattern: '^\d+$'
+ *                 description: 6-digit verification code
+ *             example:
+ *               code: "123456"
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       400:
+ *         description: Invalid verification code format
+ *       401:
+ *         description: Invalid or expired verification code
+ *       500:
+ *         description: Internal server error
+ */
+// POST /customers/verify-email - Verify email
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { error, value } = verifyEmailSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const customer = await verifyEmail(value.code);
+    res.json({ message: "Email verified successfully", customer });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+/**
+ * @openapi
+ * /customers/resend-verification:
+ *   post:
+ *     summary: Resend verification email
+ *     description: Resends the email verification code to a customer's email address
+ *     tags: [Customers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Customer's email address
+ *             example:
+ *               email: "john.doe@example.com"
+ *     responses:
+ *       200:
+ *         description: Verification email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: "Verification email sent successfully"
+ *       400:
+ *         description: Invalid input or email already verified
+ *       404:
+ *         description: Customer not found
+ *       500:
+ *         description: Internal server error
+ */
+// POST /customers/resend-verification - Resend verification email
+router.post("/resend-verification", async (req, res) => {
+  try {
+    const { error, value } = resendVerificationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const result = await resendVerificationEmail(value.email);
+    res.json(result);
+  } catch (err: any) {
+    if (err.message === "Customer not found") {
+      return res.status(404).json({ error: err.message });
+    }
+    if (err.message === "Email is already verified") {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @openapi
+ * /customers/request-password-reset:
+ *   post:
+ *     summary: Request password reset
+ *     description: Sends a 6-digit password reset code to the customer's email
+ *     tags: [Customers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Customer's email address
+ *             example:
+ *               email: "john.doe@example.com"
+ *     responses:
+ *       200:
+ *         description: Password reset email sent (or message for security)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: "If an account exists with this email, a password reset code has been sent"
+ *       400:
+ *         description: Invalid input
+ *       500:
+ *         description: Internal server error
+ */
+// POST /customers/request-password-reset - Request password reset
+router.post("/request-password-reset", async (req, res) => {
+  try {
+    const { error, value } = requestPasswordResetSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const result = await requestPasswordReset(value.email);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @openapi
+ * /customers/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     description: Resets a customer's password using the 6-digit reset code
+ *     tags: [Customers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - new_password
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 length: 6
+ *                 pattern: '^\d+$'
+ *                 description: 6-digit reset code
+ *               new_password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: New password (minimum 8 characters)
+ *             example:
+ *               code: "123456"
+ *               new_password: "newSecurePassword123"
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: "Password reset successfully"
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Invalid or expired reset code
+ *       500:
+ *         description: Internal server error
+ */
+// POST /customers/reset-password - Reset password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { error, value } = resetPasswordSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const result = await resetPassword(value.code, value.new_password);
+    res.json(result);
+  } catch (err: any) {
+    if (err.message === "Invalid or expired reset code") {
+      return res.status(401).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
   }
 });
 

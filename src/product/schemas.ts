@@ -6,6 +6,7 @@ export const createProductSchema = Joi.object({
   price: Joi.number().positive().precision(2).required(),
   stock: Joi.number().integer().min(0).required(),
   product_type_id: Joi.number().integer().positive().required(),
+  sub_category_id: Joi.number().integer().positive().allow(null).optional(),
   images: Joi.array().items(Joi.string().uri()).max(10).optional(),
   extra_properties: Joi.object().optional()
 });
@@ -16,12 +17,14 @@ export const updateProductSchema = Joi.object({
   price: Joi.number().positive().precision(2).optional(),
   stock: Joi.number().integer().min(0).optional(),
   product_type_id: Joi.number().integer().positive().optional(),
+  sub_category_id: Joi.number().integer().positive().allow(null).optional(),
   images: Joi.array().items(Joi.string().uri()).max(10).optional(),
   extra_properties: Joi.object().optional()
 }).min(1); // At least one field must be provided
 
 export const productFiltersSchema = Joi.object({
   product_type_id: Joi.number().integer().positive().optional(),
+  sub_category_id: Joi.number().integer().positive().optional(),
   minPrice: Joi.number().min(0).precision(2).optional(),
   maxPrice: Joi.number().min(0).precision(2).optional(),
   in_stock: Joi.boolean().optional(),

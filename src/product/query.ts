@@ -5,11 +5,13 @@ import { CreateProductRequest, UpdateProductRequest } from "../_services/modelTy
 
 export interface ProductFilters {
   product_type_id?: number;
+  sub_category_id?: number;
   minPrice?: number;
   maxPrice?: number;
   in_stock?: boolean;
   search?: string;
   occasion?: string;
+  created_by?: number; // Filter by creator (for admin access control)
 }
 
 export interface PaginationOptions {
@@ -25,11 +27,13 @@ export namespace Query {
     export async function getProductById(id: number) {
         return knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where({ [`${DB.Products}.id`]: id, [`${DB.Products}.is_deleted`]: false })
             .select(
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`,
-                `${DB.ProductTypes}.allowed_types as product_type_allowed_types`
+                `${DB.ProductTypes}.allowed_types as product_type_allowed_types`,
+                `${DB.SubCategories}.name as sub_category_name`
             )
             .first();
     }
@@ -61,11 +65,13 @@ export namespace Query {
     export async function listProducts(filters: ProductFilters = {}, pagination: PaginationOptions = {}) {
         const {
             product_type_id,
+            sub_category_id,
             minPrice,
             maxPrice,
             in_stock,
             search,
-            occasion
+            occasion,
+            created_by
         } = filters;
 
         const {
@@ -79,11 +85,16 @@ export namespace Query {
 
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where(`${DB.Products}.is_deleted`, false);
 
         // Apply filters
         if (product_type_id) {
             query = query.where(`${DB.Products}.product_type_id`, product_type_id);
+        }
+
+        if (sub_category_id) {
+            query = query.where(`${DB.Products}.sub_category_id`, sub_category_id);
         }
 
         if (minPrice !== undefined) {
@@ -118,6 +129,11 @@ export namespace Query {
             });
         }
 
+        // Filter by creator (for admin access control)
+        if (created_by !== undefined) {
+            query = query.where(`${DB.Products}.created_by`, created_by);
+        }
+
         // Get total count for pagination
         const countQuery = query.clone().clearSelect().clearOrder().count('* as total');
         const [{ total }] = await countQuery;
@@ -127,7 +143,8 @@ export namespace Query {
         query = query
             .select(
                 `${DB.Products}.*`,
-                `${DB.ProductTypes}.name as product_type_name`
+                `${DB.ProductTypes}.name as product_type_name`,
+                `${DB.SubCategories}.name as sub_category_name`
             )
             .orderBy(sortColumn, sort_order)
             .limit(limit)
@@ -151,6 +168,7 @@ export namespace Query {
         
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where(`${DB.Products}.is_deleted`, false)
             .where(`${DB.Products}.stock`, '>', 0);
 
@@ -175,7 +193,8 @@ export namespace Query {
         return query
             .select(
                 `${DB.Products}.*`,
-                `${DB.ProductTypes}.name as product_type_name`
+                `${DB.ProductTypes}.name as product_type_name`,
+                `${DB.SubCategories}.name as sub_category_name`
             )
             .orderBy(`${DB.Products}.created_at`, 'desc')
             .limit(limit);
@@ -186,6 +205,7 @@ export namespace Query {
         
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where({
                 [`${DB.Products}.product_type_id`]: productTypeId,
                 [`${DB.Products}.is_deleted`]: false
@@ -219,7 +239,8 @@ export namespace Query {
         return query
             .select(
                 `${DB.Products}.*`,
-                `${DB.ProductTypes}.name as product_type_name`
+                `${DB.ProductTypes}.name as product_type_name`,
+                `${DB.SubCategories}.name as sub_category_name`
             )
             .orderBy(`${DB.Products}.created_at`, 'desc')
             .limit(limit);
@@ -268,10 +289,11 @@ export namespace Query {
     }
 
     export async function getLowStockProducts(threshold: number = 10, filters: Omit<ProductFilters, 'search' | 'in_stock'> = {}) {
-        const { minPrice, maxPrice, occasion, product_type_id } = filters;
+        const { minPrice, maxPrice, occasion, product_type_id, created_by } = filters;
         
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where(`${DB.Products}.is_deleted`, false)
             .where(`${DB.Products}.stock`, '<=', threshold)
             .where(`${DB.Products}.stock`, '>', 0);
@@ -299,10 +321,16 @@ export namespace Query {
             });
         }
 
+        // Filter by creator (for admin access control)
+        if (created_by !== undefined) {
+            query = query.where(`${DB.Products}.created_by`, created_by);
+        }
+
         return query
             .select(
                 `${DB.Products}.*`,
-                `${DB.ProductTypes}.name as product_type_name`
+                `${DB.ProductTypes}.name as product_type_name`,
+                `${DB.SubCategories}.name as sub_category_name`
             )
             .orderBy(`${DB.Products}.stock`, 'asc');
     }
@@ -333,6 +361,7 @@ export namespace Query {
 
         let query = knex(DB.Products)
             .leftJoin(DB.ProductTypes, `${DB.Products}.product_type_id`, `${DB.ProductTypes}.id`)
+            .leftJoin(DB.SubCategories, `${DB.Products}.sub_category_id`, `${DB.SubCategories}.id`)
             .where(`${DB.Products}.is_deleted`, false)
             .where(`${DB.Products}.id`, '!=', productId)
             .where(`${DB.Products}.product_type_id`, '!=', targetProduct.product_type_id);
@@ -398,6 +427,7 @@ export namespace Query {
                 `${DB.Products}.*`,
                 `${DB.ProductTypes}.name as product_type_name`,
                 `${DB.ProductTypes}.allowed_types as product_type_allowed_types`,
+                `${DB.SubCategories}.name as sub_category_name`,
                 // Add a similarity score for ordering based on occasions
                 knex.raw(similarityScoreSQL, [priceRangeMin, priceRangeMax])
             )

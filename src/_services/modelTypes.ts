@@ -14,6 +14,11 @@ export interface Customer {
   country?: string;
   email: string;
   password?: string;
+  email_verified?: boolean;
+  verification_code?: string | null;
+  verification_code_expires?: Date | null;
+  reset_code?: string | null;
+  reset_code_expires?: Date | null;
   created_at?: Date;
   deleted_at?: Date | null;
   is_deleted?: boolean;
@@ -58,6 +63,32 @@ export interface ProductTypeResponse {
   created_at: string;
 }
 
+export interface SubCategory {
+  id: number;
+  name: string;
+  product_type_id: number;
+  created_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreateSubCategoryRequest {
+  name: string;
+  product_type_id: number;
+}
+
+export interface UpdateSubCategoryRequest {
+  name?: string;
+  product_type_id?: number;
+}
+
+export interface SubCategoryResponse {
+  id: number;
+  name: string;
+  product_type_id: number;
+  created_at: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -65,6 +96,7 @@ export interface Product {
   price: string; // Decimal as string for JSON serialization
   stock: number;
   product_type_id: number;
+  sub_category_id: number | null;
   images: string[] | null;
   extra_properties: Record<string, any> | null;
   created_at: Date;
@@ -78,6 +110,7 @@ export interface CreateProductRequest {
   price: number;
   stock: number;
   product_type_id: number;
+  sub_category_id?: number | null;
   images?: string[] | string;
   extra_properties?: Record<string, any> | string;
 }
@@ -88,6 +121,7 @@ export interface UpdateProductRequest {
   price?: number;
   stock?: number;
   product_type_id?: number;
+  sub_category_id?: number | null;
   images?: string[];
   extra_properties?: Record<string, any>;
 }

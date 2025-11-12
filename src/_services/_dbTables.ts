@@ -5,6 +5,7 @@ export const DB = {
   Users: "users",
   Customers: "customers",
   ProductTypes: "product_types",
+  SubCategories: "sub_categories",
   Products: "products",
   Orders: "orders",
   OrderItems: "order_items",

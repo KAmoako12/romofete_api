@@ -49,9 +49,17 @@ Creates a new order with items and calculates total including delivery cost. Thi
   "delivery_address": "123 Main St, City, State",
   "customer_email": "customer@example.com",
   "customer_phone": "+1234567890",
-  "customer_name": "John Doe"
+  "customer_name": "John Doe",
+  "metadata": {
+    "gift_message": "Happy Birthday!",
+    "special_instructions": "Please call before delivery",
+    "source": "mobile_app",
+    "campaign_id": "SUMMER2023"
+  }
 }
 ```
+
+**Note:** The `metadata` field is optional and can contain any JSON object with client-specific data. This is useful for storing additional information like gift messages, special instructions, tracking IDs, campaign information, or any custom data your application needs.
 
 **Example Request:**
 ```bash
@@ -66,7 +74,11 @@ curl -X POST http://localhost:8080/orders \
     "delivery_address": "123 Main St, City, State",
     "customer_email": "customer@example.com",
     "customer_phone": "+1234567890",
-    "customer_name": "John Doe"
+    "customer_name": "John Doe",
+    "metadata": {
+      "gift_message": "Happy Birthday!",
+      "source": "mobile_app"
+    }
   }'
 ```
 
@@ -88,6 +100,10 @@ curl -X POST http://localhost:8080/orders \
   "customer_email": "customer@example.com",
   "customer_phone": "+1234567890",
   "customer_name": "John Doe",
+  "metadata": {
+    "gift_message": "Happy Birthday!",
+    "source": "mobile_app"
+  },
   "created_at": "2023-01-01T00:00:00.000Z",
   "items": [
     {
@@ -229,9 +245,15 @@ Updates a specific order by its ID. Requires admin role.
   "status": "processing",
   "payment_status": "completed",
   "payment_reference": "PAY-123456789",
-  "delivery_address": "Updated address"
+  "delivery_address": "Updated address",
+  "metadata": {
+    "internal_notes": "VIP customer",
+    "warehouse_location": "Section A"
+  }
 }
 ```
+
+**Note:** The `metadata` field can be updated independently or alongside other fields. You can add new properties to existing metadata or replace it entirely.
 
 **Example Request:**
 ```bash
