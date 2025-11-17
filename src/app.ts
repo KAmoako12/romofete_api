@@ -43,7 +43,7 @@ const createApp = () => {
           url: `http://localhost:${PORT}`
         },
         {
-          url: 'https://romofete-api-1.onrender.com'
+          url: 'https://romofete-api-bez3.onrender.com'
         }
       ],
       components: {
