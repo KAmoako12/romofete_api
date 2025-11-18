@@ -355,7 +355,7 @@ export async function updateOrder(id: number, updates: UpdateOrderRequest): Prom
     `;
     
     try {
-      const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'orders@romofete.com';
+      const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'orders@romofete.com';
       await EmailService.sendSimpleEmail(fromEmail, existingOrder.customer_email, emailSubject, emailText, emailHtml);
       console.log(`Order status update email sent to ${existingOrder.customer_email}`);
     } catch (emailError) {

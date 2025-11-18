@@ -64,7 +64,7 @@ export async function addUser({
     `;
     
     try {
-      const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+      const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@romofete.com';
       await EmailService.sendSimpleEmail(fromEmail, user.email, emailSubject, emailText, emailHtml);
       console.log(`Welcome email sent to ${user.email}`);
     } catch (emailError) {

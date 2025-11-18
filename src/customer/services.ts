@@ -73,7 +73,7 @@ export async function registerCustomer({
     const emailTemplate = generateVerificationEmailTemplate(customerName, verificationCode);
     
     try {
-      const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+      const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@romofete.com';
       await EmailService.sendSimpleEmail(
         fromEmail,
         customer.email,
@@ -163,7 +163,7 @@ export async function resendVerificationEmail(email: string) {
   const customerName = `${(customer as any).first_name || ''} ${(customer as any).last_name || ''}`.trim() || 'Customer';
   const emailTemplate = generateVerificationEmailTemplate(customerName, verificationCode);
   
-  const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+  const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@romofete.com';
   await EmailService.sendSimpleEmail(
     fromEmail,
     (customer as any).email,
@@ -198,7 +198,7 @@ export async function requestPasswordReset(email: string) {
   const emailTemplate = generatePasswordResetEmailTemplate(customerName, resetCode);
   
   try {
-    const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+    const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@romofete.com';
     await EmailService.sendSimpleEmail(
       fromEmail,
       (customer as any).email,
@@ -239,7 +239,7 @@ export async function resetPassword(code: string, newPassword: string) {
   const emailTemplate = generatePasswordChangedEmailTemplate(customerName, (customer as any).email);
   
   try {
-    const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'noreply@romofete.com';
+    const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@romofete.com';
     await EmailService.sendSimpleEmail(
       fromEmail,
       (customer as any).email,

@@ -166,7 +166,7 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
       `;
       
       try {
-        const fromEmail = process.env.MAILERSEND_FROM_EMAIL || 'orders@romofete.com';
+        const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'orders@romofete.com';
         await EmailService.sendSimpleEmail(fromEmail, order.customer_email, emailSubject, emailText, emailHtml);
         console.log(`Payment confirmation email sent to ${order.customer_email}`);
       } catch (emailError) {

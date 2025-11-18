@@ -1,14 +1,15 @@
 /**
- * Email Service integrating MailerSend API
- * https://developers.mailersend.com/api/v1/email.html#send-an-email
+ * Email Service integrating SMTP2GO API
+ * https://developers.smtp2go.com/docs/introduction-guide
+ * https://developers.smtp2go.com/reference/send-standard-email
  */
 
 import axios from 'axios';
 
 export namespace EmailService {
-  const MAILERSEND_API_URL = 'https://api.mailersend.com/v1';
+  const SMTP2GO_API_URL = 'https://api.smtp2go.com/v3';
   // It is recommended to store the API key in environment variables
-  const API_KEY = process.env.MAILERSEND_API_KEY || '';
+  const API_KEY = process.env.SMTP2GO_API_KEY || '';
 
   /**
    * Email recipient interface
@@ -30,14 +31,14 @@ export namespace EmailService {
    * Email attachment interface
    */
   export interface EmailAttachment {
-    content: string; // Base64 encoded content
     filename: string;
-    disposition: 'inline' | 'attachment';
-    id?: string; // Used for inline images with cid
+    fileblob?: string; // Base64 encoded content
+    url?: string; // URL where SMTP2GO will fetch the attachment
+    mimetype: string;
   }
 
   /**
-   * Email personalization interface
+   * Email personalization interface (for template data)
    */
   export interface EmailPersonalization {
     email: string;
@@ -50,15 +51,23 @@ export namespace EmailService {
   export interface EmailSettings {
     track_clicks?: boolean;
     track_opens?: boolean;
-    track_content?: boolean;
   }
 
   /**
    * Custom email headers interface
    */
   export interface EmailHeader {
-    name: string;
+    header: string;
     value: string;
+  }
+
+  /**
+   * Inline image interface
+   */
+  export interface EmailInline {
+    filename: string;
+    fileblob: string; // Base64 encoded content
+    mimetype: string;
   }
 
   /**
@@ -74,46 +83,84 @@ export namespace EmailService {
     bcc?: EmailRecipient[];
     reply_to?: EmailSender;
     attachments?: EmailAttachment[];
+    inlines?: EmailInline[];
     template_id?: string;
+    template_data?: Record<string, any>;
     tags?: string[];
-    personalization?: EmailPersonalization[];
-    precedence_bulk?: boolean;
-    send_at?: number; // Unix timestamp
-    in_reply_to?: string;
-    references?: string[];
-    settings?: EmailSettings;
-    headers?: EmailHeader[];
-    list_unsubscribe?: string;
+    schedule?: string; // ISO 8601 timestamp for scheduled sending
+    custom_headers?: EmailHeader[];
   }
 
   /**
-   * Bulk email status interface
+   * SMTP2GO API request format
    */
-  export interface BulkEmailStatus {
-    id: string;
-    state: string;
-    total_recipients_count: number;
-    suppressed_recipients_count: number;
-    suppressed_recipients: any;
-    validation_errors_count: number;
-    validation_errors: any;
-    messages_id: string[];
-    created_at: string;
-    updated_at: string;
+  interface SMTP2GOEmailRequest {
+    sender: string;
+    to: string[];
+    subject?: string;
+    text_body?: string;
+    html_body?: string;
+    cc?: string[];
+    bcc?: string[];
+    attachments?: Array<{
+      filename: string;
+      fileblob?: string;
+      url?: string;
+      mimetype: string;
+    }>;
+    inlines?: Array<{
+      filename: string;
+      fileblob: string;
+      mimetype: string;
+    }>;
+    template_id?: string;
+    template_data?: Record<string, any>;
+    custom_headers?: Array<{
+      header: string;
+      value: string;
+    }>;
+    schedule?: string;
   }
 
   /**
-   * Send a single email using MailerSend API
+   * SMTP2GO API response format
+   */
+  interface SMTP2GOEmailResponse {
+    request_id: string;
+    data: {
+      succeeded: number;
+      failed: number;
+      failures: any[];
+      email_id?: string;
+      schedule_id?: string;
+    };
+  }
+
+  /**
+   * Helper function to format email address
+   */
+  function formatEmailAddress(recipient: EmailSender | EmailRecipient): string {
+    if (recipient.name) {
+      return `${recipient.name} <${recipient.email}>`;
+    }
+    return recipient.email;
+  }
+
+  /**
+   * Send a single email using SMTP2GO API
    * @param params - Email parameters
-   * @returns Promise with API response including x-message-id
+   * @returns Promise with API response including email_id
    */
   export async function sendEmail(params: SendEmailParams): Promise<{
-    messageId: string;
-    sendPaused?: boolean;
-    warnings?: any[];
+    emailId?: string;
+    scheduleId?: string;
+    succeeded: number;
+    failed: number;
+    failures: any[];
+    requestId: string;
   }> {
     if (!API_KEY) {
-      throw new Error('MailerSend API key is not set in environment variables');
+      throw new Error('SMTP2GO API key is not set in environment variables');
     }
 
     // Validate required fields
@@ -123,6 +170,17 @@ export namespace EmailService {
 
     if (!params.to || params.to.length === 0) {
       throw new Error('At least one recipient (to) is required');
+    }
+
+    // Check maximum recipients per field (SMTP2GO limit is 100)
+    if (params.to.length > 100) {
+      throw new Error('Maximum 100 recipients allowed in "to" field');
+    }
+    if (params.cc && params.cc.length > 100) {
+      throw new Error('Maximum 100 recipients allowed in "cc" field');
+    }
+    if (params.bcc && params.bcc.length > 100) {
+      throw new Error('Maximum 100 recipients allowed in "bcc" field');
     }
 
     // Validate that either text, html, or template_id is provided
@@ -135,32 +193,93 @@ export namespace EmailService {
       throw new Error('Subject is required unless template_id is provided');
     }
 
+    // Build SMTP2GO request
+    const requestData: SMTP2GOEmailRequest = {
+      sender: formatEmailAddress(params.from),
+      to: params.to.map(formatEmailAddress),
+      subject: params.subject,
+      text_body: params.text,
+      html_body: params.html,
+    };
+
+    // Add optional fields
+    if (params.cc && params.cc.length > 0) {
+      requestData.cc = params.cc.map(formatEmailAddress);
+    }
+
+    if (params.bcc && params.bcc.length > 0) {
+      requestData.bcc = params.bcc.map(formatEmailAddress);
+    }
+
+    if (params.attachments && params.attachments.length > 0) {
+      requestData.attachments = params.attachments.map(att => ({
+        filename: att.filename,
+        fileblob: att.fileblob,
+        url: att.url,
+        mimetype: att.mimetype,
+      }));
+    }
+
+    if (params.inlines && params.inlines.length > 0) {
+      requestData.inlines = params.inlines;
+    }
+
+    if (params.template_id) {
+      requestData.template_id = params.template_id;
+      if (params.template_data) {
+        requestData.template_data = params.template_data;
+      }
+    }
+
+    if (params.schedule) {
+      requestData.schedule = params.schedule;
+    }
+
+    // Handle custom headers including Reply-To
+    const customHeaders: Array<{ header: string; value: string }> = [];
+    
+    if (params.reply_to) {
+      customHeaders.push({
+        header: 'Reply-To',
+        value: formatEmailAddress(params.reply_to),
+      });
+    }
+
+    if (params.custom_headers && params.custom_headers.length > 0) {
+      customHeaders.push(...params.custom_headers);
+    }
+
+    if (customHeaders.length > 0) {
+      requestData.custom_headers = customHeaders;
+    }
+
     try {
-      const response = await axios.post(
-        `${MAILERSEND_API_URL}/email`,
-        params,
+      const response = await axios.post<SMTP2GOEmailResponse>(
+        `${SMTP2GO_API_URL}/email/send`,
+        requestData,
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
+            'X-Smtp2go-Api-Key': API_KEY,
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         }
       );
 
       return {
-        messageId: response.headers['x-message-id'],
-        sendPaused: response.headers['x-send-paused'] === 'true',
-        warnings: response.data?.warnings,
+        emailId: response.data.data.email_id,
+        scheduleId: response.data.data.schedule_id,
+        succeeded: response.data.data.succeeded,
+        failed: response.data.data.failed,
+        failures: response.data.data.failures,
+        requestId: response.data.request_id,
       };
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || 'Failed to send email';
-      const errors = error?.response?.data?.errors;
+      const errorMessage = error?.response?.data?.data?.error || error?.response?.data?.error || error.message || 'Failed to send email';
+      const errorCode = error?.response?.data?.data?.error_code || error?.response?.data?.error_code;
       
-      if (errors) {
-        const errorDetails = Object.entries(errors)
-          .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
-          .join('; ');
-        throw new Error(`${errorMessage} - ${errorDetails}`);
+      if (errorCode) {
+        throw new Error(`${errorMessage} (Error Code: ${errorCode})`);
       }
       
       throw new Error(errorMessage);
@@ -168,72 +287,65 @@ export namespace EmailService {
   }
 
   /**
-   * Send bulk emails using MailerSend API
+   * Send bulk emails using SMTP2GO API
+   * Note: SMTP2GO doesn't have a specific bulk endpoint, so we send multiple emails
    * @param emailsParams - Array of email parameters
-   * @returns Promise with bulk email ID
+   * @returns Promise with results for each email
    */
   export async function sendBulkEmails(emailsParams: SendEmailParams[]): Promise<{
-    bulkEmailId: string;
-    message: string;
+    results: Array<{
+      success: boolean;
+      emailId?: string;
+      error?: string;
+      index: number;
+    }>;
+    totalSucceeded: number;
+    totalFailed: number;
   }> {
     if (!API_KEY) {
-      throw new Error('MailerSend API key is not set in environment variables');
+      throw new Error('SMTP2GO API key is not set in environment variables');
     }
 
     if (!emailsParams || emailsParams.length === 0) {
       throw new Error('At least one email is required for bulk sending');
     }
 
-    try {
-      const response = await axios.post(
-        `${MAILERSEND_API_URL}/bulk-email`,
-        emailsParams,
-        {
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+    const results: Array<{
+      success: boolean;
+      emailId?: string;
+      error?: string;
+      index: number;
+    }> = [];
 
-      return {
-        bulkEmailId: response.data.bulk_email_id,
-        message: response.data.message,
-      };
-    } catch (error: any) {
-      throw new Error(error?.response?.data?.message || error.message || 'Failed to send bulk emails');
-    }
-  }
+    let totalSucceeded = 0;
+    let totalFailed = 0;
 
-  /**
-   * Get bulk email status
-   * @param bulkEmailId - Bulk email ID returned from sendBulkEmails
-   * @returns Promise with bulk email status
-   */
-  export async function getBulkEmailStatus(bulkEmailId: string): Promise<BulkEmailStatus> {
-    if (!API_KEY) {
-      throw new Error('MailerSend API key is not set in environment variables');
-    }
-
-    if (!bulkEmailId) {
-      throw new Error('Bulk email ID is required');
+    // Send emails sequentially to avoid rate limiting issues
+    for (let i = 0; i < emailsParams.length; i++) {
+      try {
+        const result = await sendEmail(emailsParams[i]);
+        results.push({
+          success: result.succeeded > 0,
+          emailId: result.emailId,
+          index: i,
+        });
+        totalSucceeded += result.succeeded;
+        totalFailed += result.failed;
+      } catch (error: any) {
+        results.push({
+          success: false,
+          error: error.message,
+          index: i,
+        });
+        totalFailed++;
+      }
     }
 
-    try {
-      const response = await axios.get(
-        `${MAILERSEND_API_URL}/bulk-email/${bulkEmailId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error?.response?.data?.message || error.message || 'Failed to get bulk email status');
-    }
+    return {
+      results,
+      totalSucceeded,
+      totalFailed,
+    };
   }
 
   /**
@@ -251,7 +363,14 @@ export namespace EmailService {
     subject: string,
     text: string,
     html?: string
-  ): Promise<{ messageId: string; sendPaused?: boolean; warnings?: any[] }> {
+  ): Promise<{
+    emailId?: string;
+    scheduleId?: string;
+    succeeded: number;
+    failed: number;
+    failures: any[];
+    requestId: string;
+  }> {
     const recipients = Array.isArray(to) ? to : [to];
     
     return sendEmail({
@@ -267,23 +386,30 @@ export namespace EmailService {
    * Helper function to send a template-based email
    * @param from - Sender email
    * @param to - Recipient email(s)
-   * @param templateId - MailerSend template ID
-   * @param personalization - Personalization data (optional)
+   * @param templateId - SMTP2GO template ID
+   * @param templateData - Template data variables (optional)
    * @returns Promise with API response
    */
   export async function sendTemplateEmail(
     from: string,
     to: string | string[],
     templateId: string,
-    personalization?: EmailPersonalization[]
-  ): Promise<{ messageId: string; sendPaused?: boolean; warnings?: any[] }> {
+    templateData?: Record<string, any>
+  ): Promise<{
+    emailId?: string;
+    scheduleId?: string;
+    succeeded: number;
+    failed: number;
+    failures: any[];
+    requestId: string;
+  }> {
     const recipients = Array.isArray(to) ? to : [to];
     
     return sendEmail({
       from: { email: from },
       to: recipients.map(email => ({ email })),
       template_id: templateId,
-      personalization,
+      template_data: templateData,
     });
   }
 
