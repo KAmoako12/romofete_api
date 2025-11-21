@@ -21,6 +21,13 @@ export namespace SmsService {
     if (!API_KEY) {
       throw new Error('Arkesel SMS API key is not set in environment variables');
     }
+    if(to.startsWith('0')){
+      to = '233' + to.slice(1);
+    }
+    if(to.startsWith('+')){
+      to = to.slice(1);
+    }
+    
     const payload = {
       sender: senderId,
       message,
