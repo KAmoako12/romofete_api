@@ -114,10 +114,20 @@ export async function registerCustomer({
   return customer;
 }
 
-export async function verifyEmail(code: string) {
-  const customer = await Query.getCustomerByVerificationCode(code);
+export async function verifyEmail(email: string, code: string) {
+  const customer = await Query.getCustomerByEmail(email);
   
   if (!customer) {
+    throw new Error("Invalid or expired verification code");
+  }
+
+  // Check if verification code matches and is not expired
+  const now = new Date();
+  if (
+    (customer as any).verification_code !== code ||
+    !((customer as any).verification_code_expires) ||
+    new Date((customer as any).verification_code_expires) < now
+  ) {
     throw new Error("Invalid or expired verification code");
   }
 
