@@ -45,11 +45,12 @@ Creates a new customer account and sends verification email.
 ---
 
 #### 2. Verify Email (POST /customers/verify-email)
-Verifies customer's email using the 6-digit code.
+Verifies customer's email using the email address and 6-digit code.
 
 **Request:**
 ```json
 {
+  "email": "customer@example.com",
   "code": "123456"
 }
 ```
@@ -70,7 +71,7 @@ Verifies customer's email using the 6-digit code.
 ```
 
 **Error Responses:**
-- 400: Invalid code format
+- 400: Invalid code format or email
 - 401: Invalid or expired verification code
 
 ---
@@ -275,6 +276,7 @@ INDEX idx_reset_code (reset_code)
    ```bash
    POST /customers/verify-email
    {
+     "email": "newuser@example.com",
      "code": "456789"
    }
    ```
@@ -353,6 +355,7 @@ INDEX idx_reset_code (reset_code)
    ```bash
    POST /customers/verify-email
    {
+     "email": "newuser@example.com",
      "code": "654321"
    }
    ```

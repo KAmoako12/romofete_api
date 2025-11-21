@@ -356,7 +356,7 @@ router.post("/login", async (req, res) => {
  * /customers/verify-email:
  *   post:
  *     summary: Verify customer email
- *     description: Verifies a customer's email using the 6-digit code sent during registration
+ *     description: Verifies a customer's email using the email address and 6-digit code sent during registration
  *     tags: [Customers]
  *     requestBody:
  *       required: true
@@ -365,14 +365,21 @@ router.post("/login", async (req, res) => {
  *           schema:
  *             type: object
  *             required:
+ *               - email
  *               - code
  *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 maxLength: 120
+ *                 description: Customer's email address
  *               code:
  *                 type: string
  *                 length: 6
  *                 pattern: '^\d+$'
  *                 description: 6-digit verification code
  *             example:
+ *               email: "john.doe@example.com"
  *               code: "123456"
  *     responses:
  *       200:
@@ -382,7 +389,7 @@ router.post("/login", async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Customer'
  *       400:
- *         description: Invalid verification code format
+ *         description: Invalid verification code format or email
  *       401:
  *         description: Invalid or expired verification code
  *       500:
@@ -395,7 +402,7 @@ router.post("/verify-email", async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
-    const customer = await verifyEmail(value.code);
+    const customer = await verifyEmail(value.email, value.code);
     res.json({ message: "Email verified successfully", customer });
   } catch (err: any) {
     res.status(401).json({ error: err.message });

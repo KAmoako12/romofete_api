@@ -49,22 +49,20 @@ const config: { [key: string]: Knex.Config } = {
     }
   },
   production: {
-    client: 'postgresql',
+    client: 'pg',
     connection: {
-      database: 'my_db',
-      user: 'username',
-      password: 'password'
-    },
-    pool: {
-      min: 2,
-      max: 10
+      host: process.env.PG_HOST || 'localhost',
+      port: process.env.PG_PORT ? Number(process.env.PG_PORT) : 5432,
+      user: process.env.PG_USER || 'postgres',
+      password: process.env.PG_PASSWORD || 'password',
+      database: process.env.PG_DATABASE || 'postgres'
     },
     migrations: {
       directory: './src/migrations',
-      tableName: 'knex_migrations',
-      extension: 'ts'
+      extension: 'ts',
+      tableName: 'knex_migrations'
     }
-  }
+  },
 };
 
 export default config;

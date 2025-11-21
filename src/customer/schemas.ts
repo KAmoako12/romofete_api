@@ -1,6 +1,7 @@
 import Joi from "joi";
 
 export const verifyEmailSchema = Joi.object({
+  email: Joi.string().email().max(120).required(),
   code: Joi.string().length(6).pattern(/^\d+$/).required().messages({
     'string.length': 'Verification code must be exactly 6 digits',
     'string.pattern.base': 'Verification code must contain only numbers'
