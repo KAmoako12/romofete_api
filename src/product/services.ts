@@ -11,6 +11,7 @@ export interface ProductResponse {
   price: string;
   stock: number;
   product_type_id: number;
+  sub_category_id?: number;
   product_type_name?: string;
   images: string[] | null;
   extra_properties: Record<string, any> | null;
@@ -265,6 +266,7 @@ function formatProductResponse(product: any): ProductResponse {
     price: product.price.toString(), // Convert decimal to string for JSON
     stock: product.stock,
     product_type_id: product.product_type_id,
+    sub_category_id: product.sub_category_id,
     product_type_name: product.product_type_name,
     images: product.images,
     extra_properties: product.extra_properties,
