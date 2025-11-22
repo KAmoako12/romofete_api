@@ -16,8 +16,10 @@ export const DB = {
   Collections: "collections",
   CollectionProducts: "collection_products",
   PricingConfig: "pricing_config",
-  MailingList: "mailing_list"
+  MailingList: "mailing_list",
+  PersonalizedOrders: "personalized_orders"
 };
 
 // Individual exports for convenience
 export const MAILING_LIST = DB.MailingList;
+export const PERSONALIZED_ORDERS = DB.PersonalizedOrders;

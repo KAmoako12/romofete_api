@@ -15,6 +15,7 @@ import webhookRoutes from './webhook/routes';
 import pricingConfigRoutes from './pricing-config/routes';
 import homepageSettingsRoutes from './homepage-settings/routes';
 import mailingListRoutes from './mailing-list/routes';
+import personalizedOrderRoutes from './personalized-order/routes';
 import { Database } from './_services/databaseService';
 
 const createApp = () => {
@@ -59,7 +60,7 @@ const createApp = () => {
       }
     },
     apis: ['./src/app.ts', './src/user/routes.ts', './src/customer/routes.ts', './src/delivery-option/routes.ts', 
-      './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts', './src/product-type/routes.ts', './src/sub-category/routes.ts', './src/collection/routes.ts', './src/webhook/routes.ts', './src/pricing-config/routes.ts', './src/homepage-settings/routes.ts', './src/mailing-list/routes.ts']
+      './src/product/routes.ts', './src/order/routes.ts', './src/bundle/routes.ts', './src/product-type/routes.ts', './src/sub-category/routes.ts', './src/collection/routes.ts', './src/webhook/routes.ts', './src/pricing-config/routes.ts', './src/homepage-settings/routes.ts', './src/mailing-list/routes.ts', './src/personalized-order/routes.ts']
   };
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -134,6 +135,7 @@ const createApp = () => {
   app.use('/pricing-config', pricingConfigRoutes);
   app.use('/homepage-settings', homepageSettingsRoutes);
   app.use('/', mailingListRoutes);
+  app.use('/', personalizedOrderRoutes);
 
   return app;
 };
