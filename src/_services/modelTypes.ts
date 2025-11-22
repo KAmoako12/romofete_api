@@ -408,3 +408,51 @@ export interface HomepageSettingsResponse {
   product_ids?: number[];
   created_at: string;
 }
+
+// Personalized Orders Types
+
+export interface PersonalizedOrder {
+  id: number;
+  custom_message: string;
+  selected_colors: string[] | null;
+  product_type: string;
+  metadata: Record<string, any> | null;
+  amount: string | null; // Decimal as string for JSON serialization
+  order_status: string;
+  delivery_status: string;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+  is_deleted: boolean;
+}
+
+export interface CreatePersonalizedOrderRequest {
+  custom_message: string;
+  selected_colors?: string[] | null;
+  product_type: string;
+  metadata?: Record<string, any> | null;
+  amount?: number | null;
+}
+
+export interface UpdatePersonalizedOrderRequest {
+  custom_message?: string;
+  selected_colors?: string[] | null;
+  product_type?: string;
+  metadata?: Record<string, any> | null;
+  amount?: number | null;
+  order_status?: string;
+  delivery_status?: string;
+}
+
+export interface PersonalizedOrderResponse {
+  id: number;
+  custom_message: string;
+  selected_colors: string[] | null;
+  product_type: string;
+  metadata: Record<string, any> | null;
+  amount: string | null;
+  order_status: string;
+  delivery_status: string;
+  created_at: string;
+  updated_at: string;
+}
