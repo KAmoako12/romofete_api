@@ -4,9 +4,9 @@ export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists("personalized_orders", (table) => {
         table.increments("id").primary();
         table.text("custom_message").notNullable();
-        table.json("selected_colors").nullable();
+        table.jsonb("selected_colors").nullable();
         table.string("product_type", 100).notNullable();
-        table.json("metadata").nullable();
+        table.jsonb("metadata").nullable();
         table.decimal("amount", 10, 2).nullable();
         table.string("order_status", 50).notNullable().defaultTo("pending");
         table.string("delivery_status", 50).notNullable().defaultTo("pending");
