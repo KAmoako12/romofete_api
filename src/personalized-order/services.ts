@@ -96,9 +96,9 @@ function formatOrderResponse(order: any): PersonalizedOrderResponse {
   return {
     id: order.id,
     custom_message: order.custom_message,
-    selected_colors: order.selected_colors ? JSON.parse(order.selected_colors) : null,
+    selected_colors: order.selected_colors || null,
     product_type: order.product_type,
-    metadata: order.metadata ? JSON.parse(order.metadata) : null,
+    metadata: order.metadata || null,
     amount: order.amount,
     order_status: order.order_status,
     delivery_status: order.delivery_status,

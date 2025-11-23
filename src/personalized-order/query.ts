@@ -15,7 +15,7 @@ export class Query {
       custom_message: data.custom_message,
       selected_colors: data.selected_colors ? JSON.stringify(data.selected_colors) : null,
       product_type: data.product_type,
-      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+      metadata: data.metadata || null,
       amount: data.amount || null
     };
 
@@ -50,8 +50,8 @@ export class Query {
     }
 
     // Sorting
-    const sortBy = filters.sort_by || "created_at";
-    const sortOrder = filters.sort_order || "desc";
+    const sortBy =  "created_at";
+    const sortOrder = "desc";
     query.orderBy(sortBy, sortOrder);
 
     // Pagination
@@ -61,7 +61,7 @@ export class Query {
 
     const [data, countResult] = await Promise.all([
       query.clone().limit(limit).offset(offset),
-      query.clone().count("* as count").first()
+      query.clone().clearOrder().count("* as count").first()
     ]);
 
     const total = countResult ? Number((countResult as any).count) : 0;
@@ -84,13 +84,13 @@ export class Query {
       updateData.custom_message = data.custom_message;
     }
     if (data.selected_colors !== undefined) {
-      updateData.selected_colors = data.selected_colors ? JSON.stringify(data.selected_colors) : null;
+      updateData.selected_colors = data.selected_colors || null;
     }
     if (data.product_type !== undefined) {
       updateData.product_type = data.product_type;
     }
     if (data.metadata !== undefined) {
-      updateData.metadata = data.metadata ? JSON.stringify(data.metadata) : null;
+      updateData.metadata = data.metadata || null;
     }
     if (data.amount !== undefined) {
       updateData.amount = data.amount;
