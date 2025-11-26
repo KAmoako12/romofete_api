@@ -33,6 +33,8 @@ const router = Router();
  *             required:
  *               - custom_message
  *               - product_type
+ *               - amount
+ *               - customer_email
  *             properties:
  *               custom_message:
  *                 type: string
@@ -41,23 +43,47 @@ const router = Router();
  *                 type: array
  *                 items:
  *                   type: string
+ *                 nullable: true
  *                 description: List of selected colors (optional)
  *               product_type:
  *                 type: string
  *                 description: Type of product being ordered
  *               metadata:
  *                 type: object
+ *                 nullable: true
  *                 description: Additional metadata (optional)
  *               amount:
  *                 type: number
  *                 format: float
- *                 description: Order amount (optional)
+ *                 minimum: 0
+ *                 exclusiveMinimum: true
+ *                 description: Order amount (required, must be positive, max 2 decimal places)
+ *               customer_email:
+ *                 type: string
+ *                 format: email
+ *                 description: Customer's email address (required)
+ *               customer_phone:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Customer's phone number (optional)
+ *               customer_name:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Customer's name (optional)
+ *               delivery_address:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Customer's delivery address (optional)
  *             example:
  *               custom_message: "Please add my company logo"
  *               selected_colors: ["red", "blue", "white"]
  *               product_type: "Custom T-Shirt"
  *               metadata: { size: "XL", quantity: 50 }
  *               amount: 750.00
+ *               customer_email: "john.doe@example.com"
+ *               customer_phone: "+1234567890"
+ *               customer_name: "John Doe"
+ *               delivery_address: "123 Main St, City, Country"
  *     responses:
  *       201:
  *         description: Personalized order created successfully
@@ -317,33 +343,39 @@ router.get("/personalized-orders/:id", ...requireAuthAndUserType("admin"), async
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               custom_message:
  *                 type: string
- *                 description: Custom message for the order
+ *                 description: Custom message for the order (optional)
  *               selected_colors:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: List of selected colors
+ *                 nullable: true
+ *                 description: List of selected colors (optional)
  *               product_type:
  *                 type: string
- *                 description: Type of product being ordered
+ *                 description: Type of product being ordered (optional)
  *               metadata:
  *                 type: object
- *                 description: Additional metadata
+ *                 nullable: true
+ *                 description: Additional metadata (optional)
  *               amount:
  *                 type: number
  *                 format: float
- *                 description: Order amount
+ *                 minimum: 0
+ *                 exclusiveMinimum: true
+ *                 nullable: true
+ *                 description: Order amount (optional, must be positive, max 2 decimal places)
  *               order_status:
  *                 type: string
  *                 enum: [pending, processing, shipped, delivered, cancelled]
- *                 description: Order status
+ *                 description: Order status (optional)
  *               delivery_status:
  *                 type: string
  *                 enum: [pending, in_transit, delivered, failed]
- *                 description: Delivery status
+ *                 description: Delivery status (optional)
  *             example:
  *               order_status: "processing"
  *               delivery_status: "pending"
