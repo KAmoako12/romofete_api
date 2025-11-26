@@ -1,6 +1,7 @@
 // This file contains the business logic for handling webhook events
 
 import { Query as OrderQuery } from "../order/query";
+import { Query as PersonalizedOrderQuery } from "../personalized-order/query";
 import { SmsService } from "../_services/smsService";
 import { EmailService } from "../_services/emailService";
 
@@ -97,8 +98,16 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
     
     console.log(`Processing successful charge for reference: ${reference}`);
     
+    // Check if it's a personalized order (reference starts with PO-)
+    const isPersonalizedOrder = reference.startsWith('PO-');
+    
     // Find the order by reference
-    const order = await OrderQuery.getOrderByReference(reference);
+    let order: any;
+    if (isPersonalizedOrder) {
+      order = await PersonalizedOrderQuery.getPersonalizedOrderByReference(reference);
+    } else {
+      order = await OrderQuery.getOrderByReference(reference);
+    }
     
     if (!order) {
       console.error(`Order not found for reference: ${reference}`);
@@ -109,7 +118,8 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
     }
 
     // Verify the amount matches (Paystack sends amount in kobo, convert to main currency)
-    const expectedAmount = Math.round(parseFloat(order.total_price) * 100);
+    const orderAmount = isPersonalizedOrder ? order.amount : order.total_price;
+    const expectedAmount = Math.round(parseFloat(orderAmount) * 100);
     if (amount !== expectedAmount) {
       console.error(`Amount mismatch for order ${reference}. Expected: ${expectedAmount}, Received: ${amount}`);
       return {
@@ -121,17 +131,31 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
     const previousStatus = order.payment_status;
 
     // Update the order payment status to completed
-    await OrderQuery.updateOrderPaymentStatus(
-      order.id, 
-      'completed', 
-      data.gateway_response || reference
-    );
-
-    // If order status is still pending, update it to processing
-    if (order.status === 'pending') {
-      await OrderQuery.updateOrder(order.id, {
-        status: 'processing'
+    if (isPersonalizedOrder) {
+      await PersonalizedOrderQuery.updatePersonalizedOrder(order.id, {
+        payment_status: 'completed',
+        payment_reference: data.gateway_response || reference
       });
+      
+      // If order status is still pending, update it to processing
+      if (order.order_status === 'pending') {
+        await PersonalizedOrderQuery.updatePersonalizedOrder(order.id, {
+          order_status: 'processing'
+        });
+      }
+    } else {
+      await OrderQuery.updateOrderPaymentStatus(
+        order.id, 
+        'completed', 
+        data.gateway_response || reference
+      );
+
+      // If order status is still pending, update it to processing
+      if (order.status === 'pending') {
+        await OrderQuery.updateOrder(order.id, {
+          status: 'processing'
+        });
+      }
     }
 
     // Send SMS to customer on payment success
@@ -150,11 +174,91 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
 
     // Send email to customer on payment success
     if (order.customer_email) {
-      // Fetch order items
-      const orderItems = await OrderQuery.getOrderItems(order.id);
-      
-      // Build order items HTML for email (Gmail-friendly table format)
-      let orderItemsHtml = '';
+      // For personalized orders, handle email differently
+      if (isPersonalizedOrder) {
+        const emailSubject = `Payment Confirmed - Personalized Order ${reference}`;
+        const emailText = `Dear ${order.customer_name || 'Customer'},\n\nYour payment for personalized order ${reference} was successful. Thank you for your purchase!\n\nOrder Total: GHS ${order.amount}\n\nWe will process your personalized order shortly.\n\nBest regards,\nRomofete Team`;
+        
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+              <tr>
+                <td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                      <td style="background-color: #4CAF50; padding: 30px 40px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Payment Confirmed ✓</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 40px;">
+                        <p style="margin: 0 0 20px 0; font-size: 16px; color: #333333;">Dear <strong>${order.customer_name || 'Customer'}</strong>,</p>
+                        <p style="margin: 0 0 20px 0; font-size: 16px; color: #333333;">Thank you for your purchase! Your payment has been successfully processed.</p>
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; border-radius: 6px; margin: 20px 0;">
+                          <tr>
+                            <td style="padding: 20px;">
+                              <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <td style="padding: 8px 0;"><strong style="color: #555555;">Order Reference:</strong></td>
+                                  <td style="padding: 8px 0; text-align: right;"><span style="color: #333333;">${reference}</span></td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 8px 0;"><strong style="color: #555555;">Order Type:</strong></td>
+                                  <td style="padding: 8px 0; text-align: right;"><span style="color: #333333;">Personalized Order</span></td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 8px 0;"><strong style="color: #555555;">Product Type:</strong></td>
+                                  <td style="padding: 8px 0; text-align: right;"><span style="color: #333333;">${order.product_type}</span></td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 8px 0;"><strong style="color: #555555;">Payment Status:</strong></td>
+                                  <td style="padding: 8px 0; text-align: right;"><span style="color: #4CAF50; font-weight: bold;">Completed</span></td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 8px 0;"><strong style="color: #555555;">Amount:</strong></td>
+                                  <td style="padding: 8px 0; text-align: right;"><strong style="color: #4CAF50; font-size: 18px;">GHS ${parseFloat(order.amount).toFixed(2)}</strong></td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                        <p style="margin: 30px 0 0 0; font-size: 16px; color: #333333;">We will process your personalized order shortly and keep you updated on its status.</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background-color: #f9f9f9; padding: 30px 40px; text-align: center; border-top: 1px solid #eeeeee;">
+                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666;">Best regards,</p>
+                        <p style="margin: 0; font-size: 14px; color: #333333;"><strong>Romofete Team</strong></p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `;
+        
+        try {
+          const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'orders@romofete.com';
+          await EmailService.sendSimpleEmail(fromEmail, order.customer_email, emailSubject, emailText, emailHtml);
+          console.log(`Payment confirmation email sent to ${order.customer_email}`);
+        } catch (emailError) {
+          console.error("Failed to send payment confirmation email:", emailError);
+        }
+      } else {
+        // Handle regular order email
+        // Fetch order items
+        const orderItems = await OrderQuery.getOrderItems(order.id);
+        
+        // Build order items HTML for email (Gmail-friendly table format)
+        let orderItemsHtml = '';
       if (orderItems && orderItems.length > 0) {
         orderItemsHtml = `
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -311,12 +415,13 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
         </html>
       `;
       
-      try {
-        const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'orders@romofete.com';
-        await EmailService.sendSimpleEmail(fromEmail, order.customer_email, emailSubject, emailText, emailHtml);
-        console.log(`Payment confirmation email sent to ${order.customer_email}`);
-      } catch (emailError) {
-        console.error("Failed to send payment confirmation email:", emailError);
+        try {
+          const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'orders@romofete.com';
+          await EmailService.sendSimpleEmail(fromEmail, order.customer_email, emailSubject, emailText, emailHtml);
+          console.log(`Payment confirmation email sent to ${order.customer_email}`);
+        } catch (emailError) {
+          console.error("Failed to send payment confirmation email:", emailError);
+        }
       }
     } else {
       console.error(`Customer email not found for order ${reference}`);
@@ -350,8 +455,16 @@ async function handleChargeFailed(data: PaystackWebhookData): Promise<WebhookRes
     
     console.log(`Processing failed charge for reference: ${reference}`);
     
+    // Check if it's a personalized order
+    const isPersonalizedOrder = reference.startsWith('PO-');
+    
     // Find the order by reference
-    const order = await OrderQuery.getOrderByReference(reference);
+    let order: any;
+    if (isPersonalizedOrder) {
+      order = await PersonalizedOrderQuery.getPersonalizedOrderByReference(reference);
+    } else {
+      order = await OrderQuery.getOrderByReference(reference);
+    }
     
     if (!order) {
       console.error(`Order not found for reference: ${reference}`);
@@ -364,11 +477,18 @@ async function handleChargeFailed(data: PaystackWebhookData): Promise<WebhookRes
     const previousStatus = order.payment_status;
 
     // Update the order payment status to failed
-    await OrderQuery.updateOrderPaymentStatus(
-      order.id, 
-      'failed', 
-      `Failed: ${message || 'Payment failed'}`
-    );
+    if (isPersonalizedOrder) {
+      await PersonalizedOrderQuery.updatePersonalizedOrder(order.id, {
+        payment_status: 'failed',
+        payment_reference: `Failed: ${message || 'Payment failed'}`
+      });
+    } else {
+      await OrderQuery.updateOrderPaymentStatus(
+        order.id, 
+        'failed', 
+        `Failed: ${message || 'Payment failed'}`
+      );
+    }
 
     console.log(`Payment failed for order ${reference}: ${message}`);
     
