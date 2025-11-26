@@ -10,13 +10,27 @@ import {
 const db = Database.getDBInstance;
 
 export class Query {
+  static async generateOrderReference(): Promise<string> {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    return `PO-${timestamp}-${random}`;
+  }
+
   static async createPersonalizedOrder(data: CreatePersonalizedOrderRequest) {
+    const reference = await this.generateOrderReference();
+    
     const orderData: any = {
       custom_message: data.custom_message,
       selected_colors: data.selected_colors ? JSON.stringify(data.selected_colors) : null,
       product_type: data.product_type,
       metadata: data.metadata || null,
-      amount: data.amount || null
+      amount: data.amount,
+      customer_email: data.customer_email,
+      customer_phone: data.customer_phone || null,
+      customer_name: data.customer_name || null,
+      delivery_address: data.delivery_address || null,
+      payment_status: 'pending',
+      reference: reference
     };
 
     const [order] = await db()(PERSONALIZED_ORDERS).insert(orderData).returning("*");
@@ -101,6 +115,12 @@ export class Query {
     if (data.delivery_status !== undefined) {
       updateData.delivery_status = data.delivery_status;
     }
+    if (data.payment_status !== undefined) {
+      updateData.payment_status = data.payment_status;
+    }
+    if (data.payment_reference !== undefined) {
+      updateData.payment_reference = data.payment_reference;
+    }
 
     updateData.updated_at = db().fn.now();
 
@@ -119,5 +139,11 @@ export class Query {
       .returning("*");
 
     return deleted;
+  }
+
+  static async getPersonalizedOrderByReference(reference: string): Promise<any> {
+    return db()(PERSONALIZED_ORDERS)
+      .where({ reference, is_deleted: false })
+      .first();
   }
 }

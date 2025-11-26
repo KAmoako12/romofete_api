@@ -7,6 +7,10 @@ import {
   PersonalizedOrderResponse 
 } from "../_services/modelTypes";
 
+// Paystack configuration
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_BASE_URL = 'https://api.paystack.co';
+
 // Helper function to format field names (convert snake_case to Title Case)
 function formatFieldName(fieldName: string): string {
   return fieldName
@@ -46,10 +50,42 @@ function formatOrderData(order: any): Record<string, any> {
 export async function createPersonalizedOrder(data: CreatePersonalizedOrderRequest) {
   const order = await Query.createPersonalizedOrder(data);
   
+  // Initialize Paystack charge for payment
+  let paystackResponse = null;
+  try {
+    paystackResponse = await initializePaystackCharge(order, data.customer_email);
+    
+    // Update order with payment reference
+    if (paystackResponse && paystackResponse.status) {
+      await Query.updatePersonalizedOrder(order.id, { 
+        payment_reference: paystackResponse.data.reference,
+        payment_status: 'processing' // Payment is initialized but not yet completed
+      });
+    }
+  } catch (error) {
+    console.error('Paystack charge initialization failed:', error);
+    // Don't fail the order creation if payment initialization fails
+  }
+  
   // Send notification email to admin
   await sendAdminNotification(order);
   
-  return formatOrderResponse(order);
+  // Get updated order with payment details
+  const fullOrder = await Query.getPersonalizedOrderById(order.id);
+  const formattedOrder = formatOrderResponse(fullOrder);
+  
+  // Add Paystack response to the order response if available
+  if (paystackResponse && paystackResponse.status) {
+    (formattedOrder as any).paystack_response = paystackResponse.data;
+    if (paystackResponse.data.authorization_url) {
+      (formattedOrder as any).paystack_authorization_url = paystackResponse.data.authorization_url;
+    }
+    if (paystackResponse.data.access_code) {
+      (formattedOrder as any).paystack_access_code = paystackResponse.data.access_code;
+    }
+  }
+  
+  return formattedOrder;
 }
 
 export async function getPersonalizedOrderById(id: number) {
@@ -91,6 +127,51 @@ export async function deletePersonalizedOrder(id: number) {
   return { message: 'Personalized order deleted successfully' };
 }
 
+// Paystack HTTP request function - Initialize transaction to get authorization URL
+async function initializePaystackCharge(order: any, customerEmail: string): Promise<any> {
+  if (!PAYSTACK_SECRET_KEY) {
+    throw new Error("Paystack secret key not configured");
+  }
+
+  const paystackData = {
+    email: customerEmail,
+    amount: Math.round(parseFloat(order.amount) * 100), // Paystack expects amount in kobo
+    currency: 'GHS',
+    reference: order.reference,
+    callback_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/callback`,
+    metadata: {
+      order_id: order.id,
+      order_type: 'personalized',
+      customer_name: order.customer_name,
+      delivery_address: order.delivery_address,
+      product_type: order.product_type
+    }
+  };
+
+  try {
+    // Initialize the transaction to get authorization URL
+    const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(paystackData)
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`Paystack API error: ${result.message || 'Unknown error'}`);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Paystack transaction initialization failed:', error);
+    throw error;
+  }
+}
+
 // Helper function to format order response
 function formatOrderResponse(order: any): PersonalizedOrderResponse {
   return {
@@ -99,7 +180,14 @@ function formatOrderResponse(order: any): PersonalizedOrderResponse {
     selected_colors: order.selected_colors || null,
     product_type: order.product_type,
     metadata: order.metadata || null,
-    amount: order.amount,
+    amount: order.amount?.toString() || '0',
+    customer_email: order.customer_email,
+    customer_phone: order.customer_phone || null,
+    customer_name: order.customer_name || null,
+    delivery_address: order.delivery_address || null,
+    payment_status: order.payment_status,
+    payment_reference: order.payment_reference || null,
+    reference: order.reference,
     order_status: order.order_status,
     delivery_status: order.delivery_status,
     created_at: order.created_at,

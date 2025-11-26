@@ -5,7 +5,11 @@ export const createPersonalizedOrderSchema = Joi.object({
   selected_colors: Joi.array().items(Joi.string()).optional().allow(null),
   product_type: Joi.string().required(),
   metadata: Joi.object().optional().allow(null),
-  amount: Joi.number().positive().precision(2).optional().allow(null)
+  amount: Joi.number().positive().precision(2).required(),
+  customer_email: Joi.string().email().required(),
+  customer_phone: Joi.string().optional().allow(null),
+  customer_name: Joi.string().optional().allow(null),
+  delivery_address: Joi.string().optional().allow(null)
 });
 
 export const updatePersonalizedOrderSchema = Joi.object({

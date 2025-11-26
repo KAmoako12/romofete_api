@@ -417,7 +417,14 @@ export interface PersonalizedOrder {
   selected_colors: string[] | null;
   product_type: string;
   metadata: Record<string, any> | null;
-  amount: string | null; // Decimal as string for JSON serialization
+  amount: string; // Decimal as string for JSON serialization
+  customer_email: string;
+  customer_phone: string | null;
+  customer_name: string | null;
+  delivery_address: string | null;
+  payment_status: string;
+  payment_reference: string | null;
+  reference: string;
   order_status: string;
   delivery_status: string;
   created_at: Date;
@@ -431,7 +438,11 @@ export interface CreatePersonalizedOrderRequest {
   selected_colors?: string[] | null;
   product_type: string;
   metadata?: Record<string, any> | null;
-  amount?: number | null;
+  amount: number;
+  customer_email: string;
+  customer_phone?: string | null;
+  customer_name?: string | null;
+  delivery_address?: string | null;
 }
 
 export interface UpdatePersonalizedOrderRequest {
@@ -442,6 +453,8 @@ export interface UpdatePersonalizedOrderRequest {
   amount?: number | null;
   order_status?: string;
   delivery_status?: string;
+  payment_status?: string;
+  payment_reference?: string;
 }
 
 export interface PersonalizedOrderResponse {
@@ -450,9 +463,23 @@ export interface PersonalizedOrderResponse {
   selected_colors: string[] | null;
   product_type: string;
   metadata: Record<string, any> | null;
-  amount: string | null;
+  amount: string;
+  customer_email: string;
+  customer_phone: string | null;
+  customer_name: string | null;
+  delivery_address: string | null;
+  payment_status: string;
+  payment_reference: string | null;
+  reference: string;
   order_status: string;
   delivery_status: string;
   created_at: string;
   updated_at: string;
+  paystack_response?: {
+    authorization_url: string;
+    access_code: string;
+    reference: string;
+  };
+  paystack_authorization_url?: string;
+  paystack_access_code?: string;
 }
