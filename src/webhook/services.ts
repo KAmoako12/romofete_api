@@ -159,12 +159,12 @@ async function handleChargeSuccess(data: PaystackWebhookData): Promise<WebhookRe
     }
 
     // Send SMS to customer on payment success
-    if (data.customer.phone) {
+    if (order.customer_phone) {
       const senderId = process.env.ARKESL_SMS_SENDER_ID || "ROMOFETE";
       const smsMessage = `Your payment for order ${reference} was successful. Thank you for your purchase!`;
       try {
-        await SmsService.sendSms(data.customer.phone, smsMessage, senderId);
-        console.log(`Success SMS sent to ${data.customer.phone}`);
+        await SmsService.sendSms(order.customer_phone, smsMessage, senderId);
+        console.log(`Success SMS sent to ${order.customer_phone}`);
       } catch (smsError) {
         console.error("Failed to send payment success SMS:", smsError);
       }
