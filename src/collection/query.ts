@@ -35,11 +35,19 @@ export class CollectionQuery {
       collection_id: collectionId,
       product_id: p.product_id,
       position: typeof p.position === "number" ? p.position : 0,
-      created_at: this.db.fn.now()
+      created_at: this.db.fn.now(),
+      is_deleted: false,
+      deleted_at: null
     }));
 
     const result = await this.db<CollectionProduct>(DB.CollectionProducts)
       .insert(rows)
+      .onConflict(["collection_id", "product_id"])
+      .merge({
+        position: this.db.raw("excluded.position"),
+        is_deleted: false,
+        deleted_at: null
+      })
       .returning("*");
     return result as CollectionProduct[];
   }
@@ -276,11 +284,19 @@ export class CollectionQuery {
         collection_id: collectionId,
         product_id: p.product_id,
         position: typeof p.position === "number" ? p.position : 0,
-        created_at: this.db.fn.now()
+        created_at: this.db.fn.now(),
+        is_deleted: false,
+        deleted_at: null
       }));
 
       const result = await trx<CollectionProduct>(DB.CollectionProducts)
         .insert(rows)
+        .onConflict(["collection_id", "product_id"])
+        .merge({
+          position: this.db.raw("excluded.position"),
+          is_deleted: false,
+          deleted_at: null
+        })
         .returning("*");
       
       return result as CollectionProduct[];
