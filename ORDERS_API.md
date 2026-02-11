@@ -38,11 +38,22 @@ Creates a new order with items and calculates total including delivery cost. Thi
   "items": [
     {
       "product_id": 1,
-      "quantity": 2
+      "quantity": 2,
+      "price": 150.00,
+      "metadata": {
+        "customization": "Gold embossing",
+        "size": "Large",
+        "color": "Red"
+      }
     },
     {
       "product_id": 3,
-      "quantity": 1
+      "quantity": 1,
+      "price": 99.99,
+      "metadata": {
+        "gift_wrap": true,
+        "message": "Happy Birthday!"
+      }
     }
   ],
   "delivery_option_id": 1,
@@ -51,15 +62,18 @@ Creates a new order with items and calculates total including delivery cost. Thi
   "customer_phone": "+1234567890",
   "customer_name": "John Doe",
   "metadata": {
-    "gift_message": "Happy Birthday!",
-    "special_instructions": "Please call before delivery",
+    "campaign": "SUMMER2023",
     "source": "mobile_app",
-    "campaign_id": "SUMMER2023"
+    "special_instructions": "Please call before delivery"
   }
 }
 ```
 
-**Note:** The `metadata` field is optional and can contain any JSON object with client-specific data. This is useful for storing additional information like gift messages, special instructions, tracking IDs, campaign information, or any custom data your application needs.
+**Important Notes:**
+- **Custom Pricing**: Each item can have an optional `price` field. If provided, this price will be used instead of the product's database price. If omitted, the product's current price from the database will be used.
+- **Item Metadata**: Each item can have an optional `metadata` field for item-specific information like customizations, sizes, colors, etc.
+- **Order Metadata**: The order-level `metadata` field is optional and can contain any JSON object with order-wide information like gift messages, special instructions, tracking IDs, campaign information, or any custom data your application needs.
+- **Total Calculation**: The backend calculates the subtotal using the custom prices (if provided) or product prices, then adds the delivery cost. This total is used for Paystack payment.
 
 **Example Request:**
 ```bash
@@ -88,40 +102,71 @@ curl -X POST http://localhost:8080/orders \
   "id": 1,
   "user_id": null,
   "quantity": 3,
-  "subtotal": "299.97",
+  "subtotal": "399.99",
   "delivery_cost": "15.00",
-  "total_price": "314.97",
+  "total_price": "414.99",
   "delivery_option_id": 1,
   "delivery_option_name": "Express Delivery",
   "status": "pending",
-  "payment_status": "pending",
+  "payment_status": "processing",
   "reference": "ORD-1234567890-001",
   "delivery_address": "123 Main St, City, State",
   "customer_email": "customer@example.com",
   "customer_phone": "+1234567890",
   "customer_name": "John Doe",
   "metadata": {
-    "gift_message": "Happy Birthday!",
-    "source": "mobile_app"
+    "campaign": "SUMMER2023",
+    "source": "mobile_app",
+    "special_instructions": "Please call before delivery"
   },
   "created_at": "2023-01-01T00:00:00.000Z",
   "items": [
     {
       "id": 1,
+      "order_id": 1,
       "product_id": 1,
-      "product_name": "Premium Headphones",
+      "product_name": "Custom T-Shirt",
+      "product_description": "Premium cotton t-shirt",
+      "product_images": ["image1.jpg"],
+      "product_type_name": "Clothing",
       "quantity": 2,
-      "price": "199.99"
+      "price": "150.00",
+      "metadata": {
+        "customization": "Gold embossing",
+        "size": "Large",
+        "color": "Red"
+      },
+      "created_at": "2023-01-01T00:00:00.000Z"
     },
     {
       "id": 2,
+      "order_id": 1,
       "product_id": 3,
+      "product_name": "Gift Box",
+      "product_description": "Deluxe gift box",
+      "product_images": ["box1.jpg"],
+      "product_type_name": "Accessories",
       "quantity": 1,
-      "price": "99.99"
+      "price": "99.99",
+      "metadata": {
+        "gift_wrap": true,
+        "message": "Happy Birthday!"
+      },
+      "created_at": "2023-01-01T00:00:00.000Z"
     }
-  ]
+  ],
+  "paystack_authorization_url": "https://checkout.paystack.com/abc123",
+  "paystack_access_code": "abc123def456"
 }
 ```
+
+**Notes on Response:**
+- `subtotal`: Sum of all item prices (using custom prices if provided, otherwise product prices)
+- `delivery_cost`: Added from the selected delivery option
+- `total_price`: Subtotal + delivery_cost (this amount is sent to Paystack)
+- `items[].price`: The price used for this item (custom price if provided, otherwise product price)
+- `items[].metadata`: Item-specific customization details
+- `paystack_authorization_url`: URL to redirect customer for payment
 
 ### 2. Get All Orders (Admin Only)
 **GET** `/orders`

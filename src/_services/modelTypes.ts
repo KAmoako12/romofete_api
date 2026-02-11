@@ -155,6 +155,8 @@ export interface CreateOrderRequest {
   items: Array<{
     product_id: number;
     quantity: number;
+    price?: number; // Optional custom price per item
+    metadata?: Record<string, any>; // Optional metadata per item
   }>;
   delivery_option_id?: number;
   delivery_address?: string;
@@ -180,6 +182,7 @@ export interface OrderItem {
   product_id: number;
   quantity: number;
   price: string; // Decimal as string for JSON serialization
+  metadata: Record<string, any> | null; // Flexible metadata field for item-specific data
   created_at: Date;
   deleted_at: Date | null;
   is_deleted: boolean;
@@ -190,6 +193,7 @@ export interface CreateOrderItemRequest {
   product_id: number;
   quantity: number;
   price: number;
+  metadata?: Record<string, any> | null; // Optional metadata for item customization
 }
 
 export interface Transaction {

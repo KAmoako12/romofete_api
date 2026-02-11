@@ -54,6 +54,7 @@ export interface OrderItemResponse {
   product_type_name: string;
   quantity: number;
   price: string;
+  metadata: Record<string, any> | null;
   created_at: string;
 }
 
@@ -98,7 +99,8 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderRespon
       throw new Error(`Insufficient stock for product "${product.name}". ${availability.reason}. Available: ${availability.available_stock}`);
     }
 
-    const itemPrice = parseFloat(product.price);
+    // Use custom price if provided, otherwise use product price
+    const itemPrice = (item as any).price !== undefined ? (item as any).price : parseFloat(product.price);
     const itemTotal = itemPrice * item.quantity;
     subtotal += itemTotal;
     totalQuantity += item.quantity;
@@ -107,7 +109,8 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderRespon
       order_id: 0, // Will be set after order creation
       product_id: item.product_id,
       quantity: item.quantity,
-      price: itemPrice
+      price: itemPrice,
+      metadata: (item as any).metadata || null
     });
   }
 
@@ -540,6 +543,7 @@ function formatOrderItemResponse(orderItem: any): OrderItemResponse {
     product_type_name: orderItem.product_type_name,
     quantity: orderItem.quantity,
     price: orderItem.price.toString(),
+    metadata: orderItem.metadata || null,
     created_at: orderItem.created_at.toISOString()
   };
 }

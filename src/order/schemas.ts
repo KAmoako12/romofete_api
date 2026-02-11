@@ -5,7 +5,9 @@ export const createOrderSchema = Joi.object({
   items: Joi.array().items(
     Joi.object({
       product_id: Joi.number().integer().positive().required(),
-      quantity: Joi.number().integer().positive().required()
+      quantity: Joi.number().integer().positive().required(),
+      price: Joi.number().positive().optional(), // Optional custom price per item
+      metadata: Joi.object().optional().allow(null) // Optional metadata per item
     })
   ).min(1).required(),
   delivery_option_id: Joi.number().integer().positive().optional(),
